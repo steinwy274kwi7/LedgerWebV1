@@ -1,0 +1,11 @@
+# Eclipse & Java 관련 무시할 파일들
+.metadata/
+bin/
+build/
+*.class
+.project
+.classpath
+.settings/
+
+# Mac OS 시스템 파일 무시
+.DS_Store
