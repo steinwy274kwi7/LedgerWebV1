@@ -18,18 +18,24 @@ public class UserAction implements Action {
             case "register"     -> register(request, response);
             case "loginForm"    -> loginForm(request, response);
             case "login"        -> login(request, response);
+            case "logout"       -> logout(request, response);
+            case "main"         -> mainDashboard(request, response);
             default -> throw new IllegalArgumentException("UserAction에 없는 기능: " + command);
         };
     }
     
-    // 1. 회원가입
+    // 0. 메인 대시보드
+    private String mainDashboard(HttpServletRequest request, HttpServletResponse response) {
+        return "/views/main.jsp";
+    }
+    
+    // 1. 회원가입 폼
     private String registerForm(HttpServletRequest request, HttpServletResponse response) {
         return "/views/user/registerForm.jsp";
     }
     
-    // 2. 회원가입 처리
+    // 2. 회원가입
     private String register(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        
         UserDTO dto = new UserDTO();
         dto.setUserId(request.getParameter("userId"));
         dto.setUserPw(request.getParameter("userPw"));
@@ -45,21 +51,20 @@ public class UserAction implements Action {
         boolean isSuccess = UserService.getInstance().registerUser(dto);
         
         if (isSuccess) {
-            return "/views/user/loginForm.jsp"; // 가입 성공 시 로그인 창으로
+            return "/views/user/loginForm.jsp";
         } else {
             request.setAttribute("msg", "회원가입에 실패했습니다.");
-            return "/views/user/registerForm.jsp"; // 실패 시 다시 폼으로 백
+            return "/views/user/registerForm.jsp";
         }
     }
     
-    // 3. 로그인
+    // 3. 로그인 폼
     private String loginForm(HttpServletRequest request, HttpServletResponse response) {
         return "/views/user/loginForm.jsp";
     }
     
-    // 4. 로그인 처리
+    // 4. 로그인
     private String login(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        
         String userId = request.getParameter("userId");
         String userPw = request.getParameter("userPw");
         
@@ -67,10 +72,16 @@ public class UserAction implements Action {
         
         if (loginUser != null) {
             request.getSession().setAttribute("loginUser", loginUser);
-            return "/views/main.jsp";
+            return "redirect:" + request.getContextPath() + "/main.do";
         } else {
             request.setAttribute("msg", "아이디 또는 비밀번호가 틀렸습니다.");
             return "/views/user/loginForm.jsp";
         }
+    }
+
+    // 5. 로그아웃
+    private String logout(HttpServletRequest request, HttpServletResponse response) {
+        request.getSession().invalidate();
+        return "redirect:" + request.getContextPath() + "/user/loginForm.do";
     }
 }

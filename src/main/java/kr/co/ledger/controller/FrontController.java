@@ -81,10 +81,16 @@ public class FrontController extends HttpServlet{
 		try {
 			String viewPage = action.execute(request, response);
 			if(viewPage != null){
-				if (!viewPage.startsWith("/WEB-INF")) {
-		            viewPage = "/WEB-INF" + viewPage; 
-		        }
-				request.getRequestDispatcher(viewPage).forward(request, response);
+			    if (viewPage.startsWith("redirect:")) {
+			        String redirectUrl = viewPage.substring(9);
+			        response.sendRedirect(redirectUrl);
+			    } 
+			    else {
+			        if (!viewPage.startsWith("/WEB-INF")) {
+			            viewPage = "/WEB-INF" + viewPage; 
+			        }
+			        request.getRequestDispatcher(viewPage).forward(request, response);
+			    }
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
