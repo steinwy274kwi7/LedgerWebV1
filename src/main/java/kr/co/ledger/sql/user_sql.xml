@@ -3,20 +3,20 @@
 <properties>
     
     <!-- 회원가입 -->
-    <entry key="insertUser">
+    <entry key="insertUser"><![CDATA[
         INSERT INTO USERS (
             USER_NUM, USER_ID, USER_PW, USER_NICKNAME, USER_EMAIL, USER_PHONE, USER_BIRTH
         ) VALUES (
-            USERS_SEQ.NEXTVAL, ?, ?, ?, ?, ?, ?
+            SEQ_USERS.NEXTVAL, ?, ?, ?, ?, ?, ?
         )
-    </entry>
+    ]]></entry>
     
     <!-- 로그인 검증 -->
-    <entry key="getUserById">
+    <entry key="getUserById"><![CDATA[
         SELECT USER_NUM, USER_ID, USER_PW, USER_NICKNAME, USER_STATUS 
         FROM USERS 
         WHERE USER_ID = ? 
           AND USER_STATUS != 'W'
-    </entry>
+    ]]></entry>
 
 </properties>

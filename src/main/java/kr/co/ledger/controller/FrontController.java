@@ -81,6 +81,9 @@ public class FrontController extends HttpServlet{
 		try {
 			String viewPage = action.execute(request, response);
 			if(viewPage != null){
+				if (!viewPage.startsWith("/WEB-INF")) {
+		            viewPage = "/WEB-INF" + viewPage; 
+		        }
 				request.getRequestDispatcher(viewPage).forward(request, response);
 			}
 		} catch (Exception e) {

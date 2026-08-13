@@ -51,7 +51,7 @@ public class UserDAO {
                     user = new UserDTO();
                     user.setUserNum(rs.getInt("USER_NUM"));
                     user.setUserId(rs.getString("USER_ID"));
-                    user.setUserPw(rs.getString("USER_PW")); // 암호화된 비번 가져오기
+                    user.setUserPw(rs.getString("USER_PW"));
                     user.setUserNickname(rs.getString("USER_NICKNAME"));
                     user.setUserStatus(rs.getString("USER_STATUS"));
                 }

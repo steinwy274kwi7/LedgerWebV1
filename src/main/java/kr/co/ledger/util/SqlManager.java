@@ -24,8 +24,14 @@ public class SqlManager {
         
         for (String path : xmlPaths) {
             try (InputStream is = SqlManager.class.getResourceAsStream(path)) {
-                if (is != null) sqlProps.loadFromXML(is);
+                if (is != null) {
+                    System.out.println("[SQL 로딩 중] " + path);
+                    sqlProps.loadFromXML(is);
+                } else {
+                    System.out.println("[파일 없음] " + path);
+                }
             } catch (Exception e) {
+                System.err.println("[오류] ➡️ " + path);
                 e.printStackTrace();
             }
         }
