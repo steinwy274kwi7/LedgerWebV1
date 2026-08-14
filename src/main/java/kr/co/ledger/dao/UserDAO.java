@@ -14,7 +14,7 @@ public class UserDAO {
     private UserDAO() {}
     public static UserDAO getInstance() { return instance; }
 
-    // 1. 회원가입
+    // 회원가입
     public boolean insertUser(UserDTO dto) {
         String sql = SqlManager.getSql("insertUser");
         
@@ -36,7 +36,7 @@ public class UserDAO {
         return false;
     }
 
-    // 2. 로그인 검증
+    // 로그인
     public UserDTO getUserById(String id) {
         String sql = SqlManager.getSql("getUserById");
         UserDTO user = null;
@@ -61,4 +61,43 @@ public class UserDAO {
         }
         return user;
     }
+    
+    // 아이디 찾기
+    public String findUserId(String userEmail, String userPhone, String userBirth) throws Exception {
+        String sql = SqlManager.getSql("findUserId");
+        String foundId = null;
+
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, userEmail);
+            pstmt.setString(2, userPhone);
+            pstmt.setString(3, userBirth);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    foundId = rs.getString("user_id");
+                }
+            }
+        }
+        return foundId;
+    }
+    
+    // 임시 비밀번호 발급
+    public int updateTempPw(String tempPw, String userId, String userEmail, String userPhone, String userBirth) throws Exception {
+        String sql = SqlManager.getSql("updateTempPw");
+        
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, tempPw);
+            pstmt.setString(2, userId);
+            pstmt.setString(3, userEmail);
+            pstmt.setString(4, userPhone);
+            pstmt.setString(5, userBirth);
+            
+            return pstmt.executeUpdate();
+        }
+    }
+    
 }

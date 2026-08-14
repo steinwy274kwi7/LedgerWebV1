@@ -36,5 +36,14 @@
     <p>아직 계정이 없으신가요? 
         <a href="${pageContext.request.contextPath}/user/registerForm.do">회원가입 하러가기</a>
     </p>
+    
+    <p>아이디를 잊으셨나요?
+    	<a href="${pageContext.request.contextPath}/user/findIdForm.do">아이디 찾기</a>
+    </p>
+    
+    <p>비밀번호를 잊으셨나요?
+    	<a href="${pageContext.request.contextPath}/user/findPwForm.do">비밀번호 찾기</a>
+    </p>
+    
 </body>
 </html>

@@ -3,20 +3,34 @@
 <properties>
     
     <!-- 회원가입 -->
-    <entry key="insertUser"><![CDATA[
+    <entry key="insertUser">
         INSERT INTO USERS (
             USER_NUM, USER_ID, USER_PW, USER_NICKNAME, USER_EMAIL, USER_PHONE, USER_BIRTH
         ) VALUES (
             SEQ_USERS.NEXTVAL, ?, ?, ?, ?, ?, ?
         )
-    ]]></entry>
+    </entry>
     
-    <!-- 로그인 검증 -->
-    <entry key="getUserById"><![CDATA[
+    <!-- 로그인 -->
+    <entry key="getUserById">
         SELECT USER_NUM, USER_ID, USER_PW, USER_NICKNAME, USER_STATUS 
         FROM USERS 
         WHERE USER_ID = ? 
           AND USER_STATUS != 'W'
-    ]]></entry>
+    </entry>
 
+    <!-- 아이디 찾기 -->
+    <entry key="findUserId">
+        SELECT user_id 
+        FROM users 
+        WHERE user_email = ? AND user_phone = ? AND user_birth = ?
+    </entry>
+	
+    <!-- 임시 비밀번호 발급 -->
+    <entry key="updateTempPw">
+        UPDATE users 
+        SET user_pw = ? 
+        WHERE user_id = ? AND user_email = ? AND user_phone = ? AND user_birth = ?
+    </entry>
+	
 </properties>

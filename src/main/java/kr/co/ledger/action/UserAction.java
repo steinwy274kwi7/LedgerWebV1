@@ -20,21 +20,25 @@ public class UserAction implements Action {
             case "login"        -> login(request, response);
             case "logout"       -> logout(request, response);
             case "main"         -> mainDashboard(request, response);
+            case "findIdForm" 	-> findIdForm(request, response);
+            case "findId"       -> findId(request, response);
+            case "findPwForm" 	-> findPwForm(request, response);
+            case "findPw"     	-> findPw(request, response);
             default -> throw new IllegalArgumentException("UserAction에 없는 기능: " + command);
         };
     }
     
-    // 0. 메인 대시보드
+    // 메인 대시보드
     private String mainDashboard(HttpServletRequest request, HttpServletResponse response) {
         return "/views/main.jsp";
     }
     
-    // 1. 회원가입 폼
+    // 회원가입 폼
     private String registerForm(HttpServletRequest request, HttpServletResponse response) {
         return "/views/user/registerForm.jsp";
     }
     
-    // 2. 회원가입
+    // 회원가입
     private String register(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO dto = new UserDTO();
         dto.setUserId(request.getParameter("userId"));
@@ -58,12 +62,12 @@ public class UserAction implements Action {
         }
     }
     
-    // 3. 로그인 폼
+    // 로그인 폼
     private String loginForm(HttpServletRequest request, HttpServletResponse response) {
         return "/views/user/loginForm.jsp";
     }
     
-    // 4. 로그인
+    // 로그인
     private String login(HttpServletRequest request, HttpServletResponse response) throws Exception {
         String userId = request.getParameter("userId");
         String userPw = request.getParameter("userPw");
@@ -79,9 +83,62 @@ public class UserAction implements Action {
         }
     }
 
-    // 5. 로그아웃
+    // 로그아웃
     private String logout(HttpServletRequest request, HttpServletResponse response) {
         request.getSession().invalidate();
         return "redirect:" + request.getContextPath() + "/user/loginForm.do";
+    }
+    
+    // 아이디 찾기 폼
+    private String findIdForm(HttpServletRequest request, HttpServletResponse response) {
+        return "/views/user/findIdForm.jsp";
+    }
+
+    // 아이디 찾기
+    private String findId(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String userEmail = request.getParameter("userEmail");
+        String userPhone = request.getParameter("userPhone");
+        String userBirth = request.getParameter("userBirth");
+
+        if (userBirth != null) {
+            userBirth = userBirth.replace("-", "");
+        }
+
+        String foundId = UserService.getInstance().findUserId(userEmail, userPhone, userBirth);
+
+        if (foundId != null) {
+            request.setAttribute("foundId", foundId);
+        } else {
+            request.setAttribute("msg", "일치하는 회원 정보가 없습니다.");
+        }
+
+        return "/views/user/findIdForm.jsp";
+    }
+    
+    // 임시 비밀번호 발급 폼
+    private String findPwForm(HttpServletRequest request, HttpServletResponse response) {
+        return "/views/user/findPwForm.jsp";
+    }
+    
+    // 임시 비밀번호 발급
+    private String findPw(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String userId = request.getParameter("userId");
+        String userEmail = request.getParameter("userEmail");
+        String userPhone = request.getParameter("userPhone");
+        String userBirth = request.getParameter("userBirth");
+        
+        if (userBirth != null) {
+            userBirth = userBirth.replace("-", "");
+        }
+
+        String tempPw = UserService.getInstance().issueTempPassword(userId, userEmail, userPhone, userBirth);
+
+        if (tempPw != null) {
+            request.setAttribute("tempPw", tempPw);
+        } else {
+            request.setAttribute("msg", "입력하신 정보와 일치하는 회원이 없습니다.");
+        }
+        
+        return "/views/user/findPwForm.jsp";
     }
 }
