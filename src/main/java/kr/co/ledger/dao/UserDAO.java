@@ -100,4 +100,64 @@ public class UserDAO {
         }
     }
     
+    // 마이페이지
+    public UserDTO getUserInfo(String userId) throws Exception {
+        String sql = SqlManager.getSql("getUserInfo");
+        UserDTO user = null;
+        
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, userId);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    user = new UserDTO();
+                    user.setUserId(rs.getString("USER_ID"));
+                    user.setUserNickname(rs.getString("USER_NICKNAME"));
+                    user.setUserEmail(rs.getString("USER_EMAIL"));
+                    user.setUserPhone(rs.getString("USER_PHONE"));
+                    user.setUserBirth(rs.getString("USER_BIRTH"));
+                }
+            }
+        }
+        return user;
+    }
+    
+    // 개인정보 수정
+    public int updateUserInfo(UserDTO user) throws Exception {
+        String sql = SqlManager.getSql("updateUserInfo");
+        
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, user.getUserPw());
+            pstmt.setString(2, user.getUserNickname());
+            pstmt.setString(3, user.getUserEmail());
+            pstmt.setString(4, user.getUserPhone());
+            pstmt.setString(5, user.getUserBirth());
+            pstmt.setString(6, user.getUserId());
+            
+            return pstmt.executeUpdate();
+        }
+    }
+    
+    // 회원탈퇴
+    public int withdrawUser(String delId, String delPw, String delNick, String delEmail, String delPhone, String delBirth, String originalId) throws Exception {
+        String sql = SqlManager.getSql("withdrawUser");
+        
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, delId);
+            pstmt.setString(2, delPw);
+            pstmt.setString(3, delNick);
+            pstmt.setString(4, delEmail);
+            pstmt.setString(5, delPhone);
+            pstmt.setString(6, delBirth);
+            pstmt.setString(7, originalId);
+            
+            return pstmt.executeUpdate();
+        }
+    }
 }

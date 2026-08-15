@@ -15,6 +15,13 @@
         </script>
     </c:if>
 
+	<c:if test="${not empty joinSuccess}">
+    	<div style="background-color: #e8f5e9; color: #2e7d32; padding: 20px; text-align: center; margin-bottom: 20px; border-radius: 8px; border: 1px solid #c8e6c9;">
+        	<h3 style="margin-top: 0;">회원가입을 환영합니다!</h3>
+        	<p style="margin-bottom: 0;">이제 가입하신 계정으로 바로 로그인해 보세요.</p>
+    	</div>
+	</c:if>
+
     <form action="${pageContext.request.contextPath}/user/login.do" method="post">
         <table border="1">
             <tr>

@@ -33,4 +33,31 @@
         WHERE user_id = ? AND user_email = ? AND user_phone = ? AND user_birth = ?
     </entry>
 	
+	<!-- 마이페이지 -->
+	<entry key="getUserInfo">
+    	SELECT USER_ID, USER_NICKNAME, USER_EMAIL, USER_PHONE, USER_BIRTH
+    	FROM USERS 
+    	WHERE USER_ID = ?
+	</entry>
+
+	<!-- 개인정보 수정 -->
+	<entry key="updateUserInfo">
+    	UPDATE USERS 
+    	SET USER_PW = ?, USER_NICKNAME = ?, USER_EMAIL = ?, USER_PHONE = ?, USER_BIRTH = ?
+    	WHERE USER_ID = ?
+	</entry>
+	
+	<!-- 회원탈퇴 -->
+	<entry key="withdrawUser">
+    	UPDATE USERS 
+    	SET USER_ID = ?, 
+        	USER_PW = ?, 
+        	USER_NICKNAME = ?, 
+        	USER_EMAIL = ?, 
+        	USER_PHONE = ?, 
+        	USER_BIRTH = ?, 
+        	USER_STATUS = 'W'
+    	WHERE USER_ID = ?
+	</entry>
+	
 </properties>

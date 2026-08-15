@@ -24,6 +24,10 @@ public class UserAction implements Action {
             case "findId"       -> findId(request, response);
             case "findPwForm" 	-> findPwForm(request, response);
             case "findPw"     	-> findPw(request, response);
+            case "myPage" 		-> myPage(request, response);
+            case "updateForm" 	-> updateForm(request, response);
+            case "updateInfo" 	-> updateInfo(request, response);
+            case "withdraw" 	-> withdraw(request, response);
             default -> throw new IllegalArgumentException("UserAction에 없는 기능: " + command);
         };
     }
@@ -55,6 +59,8 @@ public class UserAction implements Action {
         boolean isSuccess = UserService.getInstance().registerUser(dto);
         
         if (isSuccess) {
+        	request.setAttribute("msg", "회원가입이 완료되었습니다. 환영합니다!");
+            request.setAttribute("joinSuccess", "true");
             return "/views/user/loginForm.jsp";
         } else {
             request.setAttribute("msg", "회원가입에 실패했습니다.");
@@ -140,5 +146,78 @@ public class UserAction implements Action {
         }
         
         return "/views/user/findPwForm.jsp";
+    }
+    
+    // 마이페이지
+    private String myPage(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+ 
+        if (loginUser == null) {
+            request.setAttribute("msg", "로그인이 필요한 서비스입니다.");
+            return "/views/user/loginForm.jsp";
+        }
+        UserDTO userInfo = UserService.getInstance().getUserInfo(loginUser.getUserId());
+        request.setAttribute("userInfo", userInfo);
+        
+        return "/views/user/myPage.jsp";
+    }
+    
+    // 개인정보 수정 폼
+    private String updateForm(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) return "/views/user/loginForm.jsp";
+        
+        UserDTO userInfo = UserService.getInstance().getUserInfo(loginUser.getUserId());
+        request.setAttribute("userInfo", userInfo);
+        return "/views/user/updateForm.jsp";
+    }
+
+    // 개인정보 수정
+    private String updateInfo(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) return "/views/user/loginForm.jsp";
+
+        UserDTO dto = new UserDTO();
+        dto.setUserId(loginUser.getUserId());
+        dto.setUserPw(request.getParameter("userPw"));
+        dto.setUserNickname(request.getParameter("userNickname"));
+        dto.setUserEmail(request.getParameter("userEmail"));
+        dto.setUserPhone(request.getParameter("userPhone"));
+        
+        String birth = request.getParameter("userBirth");
+        if (birth != null) {
+            birth = birth.replace("-", ""); 
+        }
+        dto.setUserBirth(birth);
+
+        boolean isSuccess = UserService.getInstance().updateUserInfo(dto);
+
+        if (isSuccess) {
+            loginUser.setUserNickname(dto.getUserNickname()); 
+            
+            request.setAttribute("msg", "정보가 성공적으로 수정되었습니다.");
+            return myPage(request, response);
+        } else {
+            request.setAttribute("msg", "정보 수정에 실패했습니다.");
+            return "/views/user/updateForm.jsp";
+        }
+    }
+    
+    // 회원 탈퇴
+    private String withdraw(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) return "/views/user/loginForm.jsp";
+
+        boolean isSuccess = UserService.getInstance().withdrawUser(loginUser.getUserId());
+
+        if (isSuccess) {
+            request.getSession().invalidate();
+            
+            request.setAttribute("msg", "회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.");
+            return "/views/user/loginForm.jsp"; 
+        } else {
+            request.setAttribute("msg", "회원 탈퇴 처리에 실패했습니다.");
+            return "/views/user/myPage.jsp";
+        }
     }
 }

@@ -17,6 +17,7 @@
 <body>
     <h1>환영합니다, ${sessionScope.loginUser.userId}님!</h1>
     
+    <a href="${pageContext.request.contextPath}/user/myPage.do">마이페이지</a><br>
 	<a href="${pageContext.request.contextPath}/user/logout.do">로그아웃</a>
 </body>
 </html>
