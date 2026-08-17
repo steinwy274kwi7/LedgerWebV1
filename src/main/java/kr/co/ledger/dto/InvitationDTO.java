@@ -9,7 +9,26 @@ public class InvitationDTO {
     private String inviteStatus;
     private String createdAt;
 
-    public InvitationDTO() {}
+    private String groupName;
+    private String inviterName;
+    
+    public String getGroupName() {
+		return groupName;
+	}
+
+	public void setGroupName(String groupName) {
+		this.groupName = groupName;
+	}
+
+	public String getInviterName() {
+		return inviterName;
+	}
+
+	public void setInviterName(String inviterName) {
+		this.inviterName = inviterName;
+	}
+
+	public InvitationDTO() {}
 
 	public int getInviteNum() {
 		return inviteNum;

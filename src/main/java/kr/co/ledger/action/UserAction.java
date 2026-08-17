@@ -10,7 +10,8 @@ public class UserAction implements Action {
 
     @Override
     public String execute(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        String command = UriUtil.getCommand(request);
+        
+    	String command = UriUtil.getCommand(request);
         String methodName = command.substring(command.lastIndexOf("/") + 1, command.lastIndexOf("."));
         
         return switch (methodName) {

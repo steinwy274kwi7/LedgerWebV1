@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
+
+	<!-- 수락 시 그룹 멤버 등록 -->
+	<entry key="insertGroupMember">
+    	INSERT INTO GROUP_MEMBERS (
+        	MEMBER_NUM, GROUP_NUM, USER_NUM, JOIN_DATE, MEMBER_STATUS
+    	) VALUES (
+        	SEQ_GROUP_MEMBERS.NEXTVAL, ?, ?, SYSDATE, 'A'
+    	)
+	</entry>
+	
 </properties>

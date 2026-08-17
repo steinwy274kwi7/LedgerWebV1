@@ -1,4 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
+
+	<!-- 초대알림 목록 보기 -->
+	<entry key="getPendingInvitations">
+    	SELECT 
+        	I.INVITE_NUM, 
+        	G.GROUP_NAME, 
+        	U.USER_NICKNAME AS INVITER_NAME, 
+        	I.CREATED_AT
+    	FROM INVITATIONS I
+    	JOIN GROUPS G ON I.GROUP_NUM = G.GROUP_NUM
+    	JOIN USERS U ON I.INVITER_NUM = U.USER_NUM
+    	WHERE I.INVITEE_NUM = ? 
+      		AND I.INVITE_STATUS = 'P'
+    	ORDER BY I.CREATED_AT DESC
+	</entry>	
+
+	<!-- 초대장 status 변경 -->
+	<entry key="updateInviteStatus">
+    	UPDATE INVITATIONS 
+    	SET INVITE_STATUS = ? 
+    	WHERE INVITE_NUM = ?
+	</entry>
+	
+	<!-- 수락할 방 번호 확인 -->
+	<entry key="getInvitationDetail">
+    	SELECT GROUP_NUM, INVITEE_NUM 
+    	FROM INVITATIONS 
+    	WHERE INVITE_NUM = ?
+	</entry>
+
 </properties>

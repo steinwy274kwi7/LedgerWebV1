@@ -1,5 +1,88 @@
 package kr.co.ledger.action;
 
-public class GroupManageAction {
+import java.io.PrintWriter;
+import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
+import kr.co.ledger.dto.InvitationDTO;
+import kr.co.ledger.dto.UserDTO;
+import kr.co.ledger.service.GroupManageService;
+import kr.co.ledger.util.UriUtil;
+
+public class GroupManageAction implements Action {
+
+    @Override
+    public String execute(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        
+        String command = UriUtil.getCommand(request);
+        String methodName = command.substring(command.lastIndexOf("/") + 1, command.lastIndexOf("."));
+        
+        return switch (methodName) {
+            case "getInvitations" -> getInvitations(request, response); 
+            case "respondInvite"  -> respondInvite(request, response);
+            default -> throw new IllegalArgumentException("GroupManageAction에 없는 기능: " + command);
+        };
+    }
+
+    // 초대알림 목록 보기
+    private String getInvitations(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
+            return null;
+        }
+        
+        int myUserNum = loginUser.getUserNum(); 
+        List<InvitationDTO> inviteList = GroupManageService.getInstance().getPendingInvitations(myUserNum);
+        
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        StringBuilder json = new StringBuilder();
+        json.append("[");
+        
+        for (int i = 0; i < inviteList.size(); i++) {
+            InvitationDTO dto = inviteList.get(i);
+            
+            json.append("{");
+            json.append("\"inviteNum\":").append(dto.getInviteNum()).append(",");
+            json.append("\"groupName\":\"").append(dto.getGroupName()).append("\",");
+            json.append("\"inviterName\":\"").append(dto.getInviterName()).append("\"");
+            json.append("}");
+            
+            if (i < inviteList.size() - 1) {
+                json.append(",");
+            }
+        }
+        json.append("]");
+        
+        out.print(json.toString()); 
+        out.flush();
+        
+        return null;
+    }
+    
+ 	// 초대 수락, 거절
+    private String respondInvite(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
+            return null;
+        }
+        
+        int inviteNum = Integer.parseInt(request.getParameter("inviteNum"));
+        String status = request.getParameter("status"); 
+        int myUserNum = loginUser.getUserNum(); 
+        
+        boolean isSuccess = GroupManageService.getInstance().respondToInvitation(inviteNum, status, myUserNum);
+        
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        out.print("{\"success\": " + isSuccess + "}"); 
+        out.flush();
+        
+        return null;
+    }
 }
