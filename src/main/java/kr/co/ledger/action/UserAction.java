@@ -28,6 +28,7 @@ public class UserAction implements Action {
             case "updateForm" 	-> updateForm(request, response);
             case "updateInfo" 	-> updateInfo(request, response);
             case "withdraw" 	-> withdraw(request, response);
+            case "wakeup" 		-> wakeup(request, response);
             default -> throw new IllegalArgumentException("UserAction에 없는 기능: " + command);
         };
     }
@@ -81,6 +82,10 @@ public class UserAction implements Action {
         UserDTO loginUser = UserService.getInstance().login(userId, userPw);
         
         if (loginUser != null) {
+        	if ("D".equals(loginUser.getUserStatus())) {
+                request.setAttribute("dormantId", loginUser.getUserId());
+                return "/views/user/recoveryForm.jsp"; 
+            }
             request.getSession().setAttribute("loginUser", loginUser);
             return "redirect:" + request.getContextPath() + "/main.do";
         } else {
@@ -220,4 +225,19 @@ public class UserAction implements Action {
             return "/views/user/myPage.jsp";
         }
     }
+    
+    // 휴면 해제
+    private String wakeup(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String userId = request.getParameter("userId");
+        
+        boolean isSuccess = UserService.getInstance().wakeupUser(userId);
+
+        if (isSuccess) {
+            request.setAttribute("msg", "휴면 상태가 해제되었습니다. 다시 로그인해 주세요!");
+        } else {
+            request.setAttribute("msg", "휴면 해제에 실패했습니다.");
+        }
+        return "/views/user/loginForm.jsp";
+    }
+    
 }

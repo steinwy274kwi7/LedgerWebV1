@@ -35,4 +35,9 @@
 		<url-pattern>*.do</url-pattern>	
 	</servlet-mapping>
 	
+	<!-- 휴면 계정 자동 전환 백그라운드 스케줄러 등록 -->
+    <listener>
+        <listener-class>kr.co.ledger.listener.DormantBatchListener</listener-class>
+    </listener>
+    
 </web-app>

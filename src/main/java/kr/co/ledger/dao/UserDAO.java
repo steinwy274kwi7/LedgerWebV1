@@ -160,4 +160,28 @@ public class UserDAO {
             return pstmt.executeUpdate();
         }
     }
+    
+    // 휴면계정처리
+    public int updateDormantUsers() throws Exception {
+        String sql = SqlManager.getSql("updateDormantUsers");
+        
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            return pstmt.executeUpdate();
+        }
+    }
+    
+    // 휴면해제처리
+    public int wakeupUser(String userId) throws Exception {
+        String sql = SqlManager.getSql("wakeupUser");
+        
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, userId);
+            return pstmt.executeUpdate();
+        }
+    }
+    
 }

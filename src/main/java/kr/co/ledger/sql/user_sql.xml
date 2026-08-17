@@ -60,4 +60,20 @@
     	WHERE USER_ID = ?
 	</entry>
 	
+	<!-- 휴면계정처리 -->
+	<entry key="updateDormantUsers">
+    	UPDATE USERS 
+    	SET USER_STATUS = 'D'
+    	WHERE MONTHS_BETWEEN(SYSDATE, USER_LAST_LOGIN_AT) >= 12 
+      	AND USER_STATUS = 'A'
+	</entry>		
+	
+	<!-- 휴면해제처리 -->
+	<entry key="wakeupUser">
+    	UPDATE USERS 
+    	SET USER_STATUS = 'A', 
+        	USER_LAST_LOGIN_AT = SYSDATE 
+    	WHERE USER_ID = ?
+	</entry>
+	
 </properties>
