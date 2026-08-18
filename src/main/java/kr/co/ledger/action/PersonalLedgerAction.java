@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.RatioDTO;
 import kr.co.ledger.dto.UserDTO;
 import kr.co.ledger.service.PersonalLedgerService;
 import kr.co.ledger.util.UriUtil;
@@ -20,6 +21,8 @@ public class PersonalLedgerAction implements Action {
         
         return switch (methodName) {
             case "getChartData" -> getChartData(request, response);
+            case "getRatioData" -> getRatioData(request, response);
+            case "statistics" -> "/views/personal_ledger/statistics.jsp";
             default -> throw new IllegalArgumentException("PersonalLedgerAction에 없는 기능: " + command);
         };
     }
@@ -59,6 +62,34 @@ public class PersonalLedgerAction implements Action {
         json.append("]");
         
         out.print(json.toString());
+        out.flush();
+        
+        return null;
+    }
+    
+    // 개인 흑자, 적자 비율
+    private String getRatioData(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
+            return null;
+        }
+
+        int myUserNum = loginUser.getUserNum();
+        String targetMonth = request.getParameter("month");
+        if (targetMonth == null) targetMonth = "2026-08"; 
+
+        RatioDTO ratioData = PersonalLedgerService.getInstance().calculateMonthlyRatio(myUserNum, targetMonth);
+
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        String json = String.format(
+            "{\"totalIncome\":%d, \"totalExpense\":%d, \"expenseRatio\":%.1f, \"statusMessage\":\"%s\"}",
+            ratioData.getTotalIncome(), ratioData.getTotalExpense(), ratioData.getExpenseRatio(), ratioData.getStatusMessage()
+        );
+        
+        out.print(json);
         out.flush();
         
         return null;

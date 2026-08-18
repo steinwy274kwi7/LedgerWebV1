@@ -16,5 +16,16 @@
 	    GROUP BY C.CATEGORY_NAME
 	    ORDER BY TOTAL_AMOUNT DESC
 	</entry>
-
+	
+	<!-- 개인 흑자, 적자 비율 -->
+	<entry key="getMonthlyTotalInOut">
+	    SELECT 
+	        NVL(SUM(CASE WHEN TRANS_TYPE = 'I' THEN TRANS_AMOUNT ELSE 0 END), 0) AS TOTAL_INCOME,
+	        NVL(SUM(CASE WHEN TRANS_TYPE = 'E' THEN TRANS_AMOUNT ELSE 0 END), 0) AS TOTAL_EXPENSE
+	    FROM PERSONAL_TRANSACTIONS
+	    WHERE USER_NUM = ? 
+	      AND TO_CHAR(TRANS_DATE, 'YYYY-MM') = ? 
+	      AND USE_YN = 'Y'
+	</entry>
+	
 </properties>
