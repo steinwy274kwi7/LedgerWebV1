@@ -1,4 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
+
+	<!-- 그룹 카테고리 합계 -->
+	<entry key="getAllMyGroupCategorySumForChart">
+	    <![CDATA[
+	    SELECT 
+	        C.CATEGORY_NAME,
+	        NVL(SUM(T.TRANS_AMOUNT), 0) AS TOTAL_AMOUNT
+	    FROM GROUP_TRANSACTIONS T
+	    JOIN GROUP_CATEGORIES C ON T.GCATEGORY_NUM = C.GCATEGORY_NUM
+	    WHERE T.GROUP_NUM IN (
+	        SELECT GROUP_NUM 
+	        FROM GROUP_MEMBERS 
+	        WHERE USER_NUM = ? AND MEMBER_STATUS = 'A'
+	    )
+	      AND TO_CHAR(T.TRANS_DATE, 'YYYY-MM') = ? 
+	      AND T.USE_YN = 'Y'
+	    GROUP BY C.CATEGORY_NAME
+	    ORDER BY TOTAL_AMOUNT DESC
+	    ]]>
+	</entry>
+
 </properties>
