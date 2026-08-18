@@ -4,6 +4,7 @@ import java.util.List;
 import kr.co.ledger.dao.PersonalTransactionDAO;
 import kr.co.ledger.dto.ChartDTO;
 import kr.co.ledger.dto.RatioDTO;
+import kr.co.ledger.dto.TrendDTO;
 
 public class PersonalLedgerService {
 	
@@ -44,5 +45,10 @@ public class PersonalLedgerService {
         }
         
         return dto;
+    }
+    
+    // 개인 6개월 추이
+    public List<TrendDTO> getRecent6MonthsTrend(int userNum, String targetMonth) throws Exception {
+        return PersonalTransactionDAO.getInstance().getRecent6MonthsTrend(userNum, targetMonth);
     }
 }

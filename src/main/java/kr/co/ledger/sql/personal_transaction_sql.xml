@@ -28,4 +28,21 @@
 	      AND USE_YN = 'Y'
 	</entry>
 	
+	<!-- 개인 6개월 추이 -->
+	<entry key="getRecent6MonthsTrend">
+	    <![CDATA[
+	    SELECT 
+	        TO_CHAR(TRANS_DATE, 'YYYY-MM') AS TRANS_MONTH,
+	        NVL(SUM(CASE WHEN TRANS_TYPE = 'I' THEN TRANS_AMOUNT ELSE 0 END), 0) AS TOTAL_INCOME,
+	        NVL(SUM(CASE WHEN TRANS_TYPE = 'E' THEN TRANS_AMOUNT ELSE 0 END), 0) AS TOTAL_EXPENSE
+	    FROM PERSONAL_TRANSACTIONS
+	    WHERE USER_NUM = ? 
+	      AND TRANS_DATE >= ADD_MONTHS(TO_DATE(?, 'YYYY-MM'), -5)
+	      AND TRANS_DATE < ADD_MONTHS(TO_DATE(?, 'YYYY-MM'), 1)
+	      AND USE_YN = 'Y'
+	    GROUP BY TO_CHAR(TRANS_DATE, 'YYYY-MM')
+	    ORDER BY TRANS_MONTH ASC
+	    ]]>
+	</entry>
+	
 </properties>

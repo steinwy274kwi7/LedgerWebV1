@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>통계 대시보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .ratio-container {
             width: 400px; padding: 20px; margin: 20px auto; 
@@ -27,8 +28,8 @@
     <h2 style="text-align: center;">2026년 8월 흑자/적자 분석</h2>
     
     <div style="text-align: center;">
-        <button onclick="loadRatioData('2026-08')" style="padding: 10px; cursor: pointer;">
-            수입 대비 지출 비율 확인
+        <button onclick="loadRatioData('2026-08'); loadTrendData('2026-08');" style="padding: 10px; cursor: pointer;">
+            통계 데이터 모두 불러오기
         </button>
     </div>
 
@@ -45,6 +46,11 @@
         <p id="uiMessage" style="text-align: center; color: #555; font-size: 14px; font-weight: bold;"></p>
     </div>
 
+	<div class="ratio-container" style="width: 600px;">
+	    <h3 style="margin-top: 0; text-align: center;">최근 6개월 수입/지출 추이</h3>
+	    <canvas id="trendChart"></canvas>
+	</div>
+	
     <script>
         function loadRatioData(month) {
             fetch('${pageContext.request.contextPath}/personal/getRatioData.do?month=' + month)
@@ -82,6 +88,78 @@
                     alert('데이터를 불러오지 못했습니다.');
                 });
         }
+        
+        let trendChartInstance = null;
+
+        function loadTrendData(month) {
+            fetch('${pageContext.request.contextPath}/personal/getTrendData.do?month=' + month)
+                .then(response => {
+                    if (!response.ok) throw new Error('서버 통신 에러');
+                    return response.json();
+                })
+                .then(data => {
+                    const labels = data.map(item => item.month);
+                    const incomes = data.map(item => item.totalIncome);
+                    const expenses = data.map(item => item.totalExpense);
+
+                    if (trendChartInstance != null) {
+                        trendChartInstance.destroy();
+                    }
+
+                    const ctx = document.getElementById('trendChart').getContext('2d');
+                    trendChartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    type: 'line',
+                                    label: '수입 추세',
+                                    data: incomes,
+                                    borderColor: '#36A2EB',
+                                    borderWidth: 2,
+                                    fill: false,
+                                    tension: 0.3
+                                },
+                                {
+                                    type: 'line', 
+                                    label: '지출 추세',
+                                    data: expenses,
+                                    borderColor: '#FF6384',
+                                    borderWidth: 2,
+                                    fill: false,
+                                    tension: 0.3
+                                },
+                                {
+                                    type: 'bar',
+                                    label: '수입',
+                                    data: incomes,
+                                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                    borderRadius: 4
+                                },
+                                {
+                                    type: 'bar',
+                                    label: '지출',
+                                    data: expenses,
+                                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                                    borderRadius: 4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: { beginAtZero: true }
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('추이 데이터를 불러오지 못했습니다.');
+                });
+        }
+        
     </script>
 </body>
 </html>

@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import kr.co.ledger.dto.ChartDTO;
 import kr.co.ledger.dto.RatioDTO;
+import kr.co.ledger.dto.TrendDTO;
 import kr.co.ledger.dto.UserDTO;
 import kr.co.ledger.service.PersonalLedgerService;
 import kr.co.ledger.util.UriUtil;
@@ -23,6 +24,7 @@ public class PersonalLedgerAction implements Action {
             case "getChartData" -> getChartData(request, response);
             case "getRatioData" -> getRatioData(request, response);
             case "statistics" -> "/views/personal_ledger/statistics.jsp";
+            case "getTrendData" -> getTrendData(request, response);
             default -> throw new IllegalArgumentException("PersonalLedgerAction에 없는 기능: " + command);
         };
     }
@@ -90,6 +92,42 @@ public class PersonalLedgerAction implements Action {
         );
         
         out.print(json);
+        out.flush();
+        
+        return null;
+    }
+    
+    // 개인 6개월 추이
+    private String getTrendData(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
+            return null;
+        }
+
+        int myUserNum = loginUser.getUserNum();
+        String targetMonth = request.getParameter("month");
+        if (targetMonth == null) targetMonth = "2026-08"; 
+
+        List<TrendDTO> trendList = PersonalLedgerService.getInstance().getRecent6MonthsTrend(myUserNum, targetMonth);
+
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        StringBuilder json = new StringBuilder();
+        
+        json.append("[");
+        for (int i = 0; i < trendList.size(); i++) {
+            TrendDTO dto = trendList.get(i);
+            json.append("{");
+            json.append("\"month\":\"").append(dto.getMonth()).append("\",");
+            json.append("\"totalIncome\":").append(dto.getTotalIncome()).append(",");
+            json.append("\"totalExpense\":").append(dto.getTotalExpense());
+            json.append("}");
+            if (i < trendList.size() - 1) json.append(",");
+        }
+        json.append("]");
+        
+        out.print(json.toString());
         out.flush();
         
         return null;
