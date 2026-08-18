@@ -15,6 +15,8 @@
     <meta charset="UTF-8">
     <title>가계부 메인 화면</title>
     
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         #inviteModal {
             display: none; 
@@ -30,6 +32,12 @@
             border-radius: 8px;
             max-height: 400px;
     		overflow-y: auto;
+        }
+        
+        .chart-container {
+            width: 400px;
+            height: 400px;
+            margin: 20px auto;
         }
     </style>
 </head>
@@ -51,6 +59,25 @@
         </div>
         
         <div id="inviteList"></div>
+    </div>
+    
+    <br><hr><br>
+    
+    <h2 style="text-align: center;">2026년 8월 내역 비율</h2>
+    
+    <div style="text-align: center;">
+        <button onclick="loadChartData('E', '2026-08')">지출 차트 보기</button>
+        <button onclick="loadChartData('I', '2026-08')">수입 차트 보기</button>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="myPieChart"></canvas>
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="location.href='${pageContext.request.contextPath}/personal/statistics.do'" style="padding: 10px 20px; font-weight: bold; cursor: pointer;">
+            통계 더 보기
+        </button>
     </div>
     
     <script>
@@ -126,6 +153,58 @@
                 .catch(error => {
                     console.error('Error:', error);
                     alert('오류가 발생했습니다.');
+                });
+        }
+        
+        let myChartInstance = null; 
+
+        function loadChartData(type, month) {
+            
+            fetch('${pageContext.request.contextPath}/personal/getChartData.do?type=' + type + '&month=' + month)
+                .then(response => {
+                    if (!response.ok) throw new Error('서버 에러');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.length === 0) {
+                        alert('해당 달의 내역이 없습니다!');
+                        if (myChartInstance != null) {
+                            myChartInstance.destroy();
+                        }
+                        return;
+                    }
+
+                    const labels = data.map(item => item.categoryName); 
+                    const amounts = data.map(item => item.totalAmount); 
+
+                    if (myChartInstance != null) {
+                        myChartInstance.destroy();
+                    }
+
+                    const ctx = document.getElementById('myPieChart').getContext('2d');
+                    myChartInstance = new Chart(ctx, {
+                        type: 'pie', 
+                        data: {
+                            labels: labels, 
+                            datasets: [{
+                                data: amounts, 
+                                backgroundColor: [
+                                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                                    '#FF9F40', '#C9CBCF', '#84FF63', '#E636EB', '#56FFCE'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { position: 'bottom' } 
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('차트 데이터를 불러오는 데 실패했습니다.');
                 });
         }
     </script>
