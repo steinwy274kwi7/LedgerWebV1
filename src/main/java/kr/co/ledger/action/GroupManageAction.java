@@ -4,7 +4,7 @@ import java.io.PrintWriter;
 import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
+import kr.co.ledger.dto.GroupDTO;
 import kr.co.ledger.dto.InvitationDTO;
 import kr.co.ledger.dto.UserDTO;
 import kr.co.ledger.service.GroupManageService;
@@ -21,6 +21,7 @@ public class GroupManageAction implements Action {
         return switch (methodName) {
             case "getInvitations" -> getInvitations(request, response); 
             case "respondInvite"  -> respondInvite(request, response);
+            case "list" 		  -> getMyGroupList(request, response);
             default -> throw new IllegalArgumentException("GroupManageAction에 없는 기능: " + command);
         };
     }
@@ -84,5 +85,20 @@ public class GroupManageAction implements Action {
         out.flush();
         
         return null;
+    }
+    
+    // 내가 속한 그룹 목록 로드
+    private String getMyGroupList(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        
+        if (loginUser == null) {
+            return "redirect:" + request.getContextPath() + "/user/loginForm.do";
+        }
+
+        List<GroupDTO> groupList = GroupManageService.getInstance().getMyGroupList(loginUser.getUserNum());
+        
+        request.setAttribute("groupList", groupList);
+        
+        return "/views/group_manage/groupList.jsp";
     }
 }

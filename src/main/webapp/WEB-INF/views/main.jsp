@@ -51,6 +51,7 @@
     <a href="${pageContext.request.contextPath}/user/myPage.do">마이페이지</a><br>
     <a href="${pageContext.request.contextPath}/user/logout.do">로그아웃</a><br>
     <a href="${pageContext.request.contextPath}/personal/calendar.do">개인 가계부 이동</a><br>  
+    <a href="${pageContext.request.contextPath}/group/list.do">공동 가계부</a><br>
     
     <br><br>
 

@@ -2,8 +2,10 @@ package kr.co.ledger.service;
 
 import java.util.List;
 
+import kr.co.ledger.dao.GroupDAO;
 import kr.co.ledger.dao.GroupMemberDAO;
 import kr.co.ledger.dao.InvitationDAO;
+import kr.co.ledger.dto.GroupDTO;
 import kr.co.ledger.dto.InvitationDTO;
 
 public class GroupManageService {
@@ -37,4 +39,8 @@ public class GroupManageService {
 	    return isUpdated;
 	}
 	
+	// 내가 속한 그룹 목록 조회
+	public List<GroupDTO> getMyGroupList(int userNum) throws Exception {
+	    return GroupDAO.getInstance().getMyGroupList(userNum);
+	}
 }

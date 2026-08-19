@@ -11,8 +11,17 @@ public class GroupDTO {
     private String settleUseYn;
     private String useYn;
     private String createdAt;
+    private int memberCount;
+    
+	public GroupDTO() {}
+	
+    public int getMemberCount() {
+		return memberCount;
+	}
 
-    public GroupDTO() {}
+	public void setMemberCount(int memberCount) {
+		this.memberCount = memberCount;
+	}
 
 	public int getGroupNum() {
 		return groupNum;

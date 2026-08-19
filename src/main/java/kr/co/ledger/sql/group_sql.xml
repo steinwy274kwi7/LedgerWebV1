@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
+
+    <!-- 내가 속한 그룹 목록 조회 -->
+    <entry key="getMyGroupList">
+        <![CDATA[
+        SELECT G.GROUP_NUM, G.GROUP_NAME, G.GROUP_DESC, G.GROUP_TYPE, G.GROUP_OWNER_NUM, 
+               TO_CHAR(G.CREATED_AT, 'YYYY-MM-DD') AS CREATED_AT,
+               (SELECT COUNT(*) FROM GROUP_MEMBERS WHERE GROUP_NUM = G.GROUP_NUM AND MEMBER_STATUS = 'A') AS MEMBER_COUNT
+        FROM GROUPS G
+        JOIN GROUP_MEMBERS GM ON G.GROUP_NUM = GM.GROUP_NUM
+        WHERE GM.USER_NUM = ? 
+          AND GM.MEMBER_STATUS = 'A' 
+          AND G.USE_YN = 'Y'
+        ORDER BY GM.JOIN_DATE DESC
+        ]]>
+    </entry>
+    
 </properties>
