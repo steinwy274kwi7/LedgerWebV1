@@ -66,4 +66,13 @@
 	    ]]>
 	</entry>
 	
+	<!-- 방 소프트 딜리트 (방장 본인만 가능) -->
+	<entry key="deleteGroup">
+	    <![CDATA[
+	    UPDATE GROUPS 
+	    SET USE_YN = 'N' 
+	    WHERE GROUP_NUM = ? AND GROUP_OWNER_NUM = ?
+	    ]]>
+	</entry>
+	
 </properties>

@@ -144,4 +144,18 @@ public class GroupDAO {
         }
         return dto;
     }
+    
+    // 그룹 삭제 (소프트 딜리트)
+    public boolean deleteGroup(int groupNum, int ownerNum) throws Exception {
+        String sql = SqlManager.getSql("deleteGroup");
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             
+            pstmt.setInt(1, groupNum);
+            pstmt.setInt(2, ownerNum);
+            
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+    
 }

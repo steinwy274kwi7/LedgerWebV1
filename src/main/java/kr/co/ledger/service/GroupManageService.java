@@ -68,4 +68,13 @@ public class GroupManageService {
 	    return GroupDAO.getInstance().getGroupInfo(groupNum);
 	}
 	
+	// 그룹 삭제 (방 소프트 딜리트)
+	public void deleteGroup(int groupNum, int ownerNum) throws Exception {
+	    boolean isSuccess = kr.co.ledger.dao.GroupDAO.getInstance().deleteGroup(groupNum, ownerNum);
+	    
+	    if (!isSuccess) {
+	        throw new IllegalAccessException("방장만 그룹을 삭제할 수 있거나, 이미 삭제된 방입니다.");
+	    }
+	}
+	
 }

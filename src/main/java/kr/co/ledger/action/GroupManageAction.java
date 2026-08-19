@@ -25,6 +25,7 @@ public class GroupManageAction implements Action {
             case "createForm" 	  -> createForm(request, response);
             case "create"         -> createGroup(request, response);
             case "updateSettings" -> updateGroupSettings(request, response);
+            case "delete" 		  -> deleteGroup(request, response);
             default -> throw new IllegalArgumentException("GroupManageAction에 없는 기능: " + command);
         };
     }
@@ -181,5 +182,33 @@ public class GroupManageAction implements Action {
         }
         
         return null;
+    }
+    
+    // 그룹 삭제 ( 방 소프트 딜리트 )
+    private String deleteGroup(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        if (loginUser == null) {
+            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
+            return null;
+        }
+
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            
+            GroupManageService.getInstance().deleteGroup(groupNum, loginUser.getUserNum());
+            
+            out.print("{\"success\": true, \"message\": \"그룹이 성공적으로 삭제되었습니다.\"}");
+            
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally {
+            out.flush();
+        }
+        
+        return null; 
     }
 }

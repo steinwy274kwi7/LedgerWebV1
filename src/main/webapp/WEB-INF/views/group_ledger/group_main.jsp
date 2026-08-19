@@ -50,6 +50,10 @@
             <button onclick="saveGroupSettings()" style="flex:1; background:#007BFF; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">저장</button>
             <button onclick="closeSettingsModal()" style="flex:1; background:#6c757d; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">취소</button>
         </div>
+        
+        <div style="margin-top: 15px; text-align: right; border-top: 1px dashed #ccc; padding-top: 15px;">
+            <button onclick="deleteGroup()" style="background:none; color:#dc3545; border:none; font-weight:bold; cursor:pointer; text-decoration:underline;">🗑️ 이 방 삭제하기</button>
+        </div>
     </div>
 
     <script>
@@ -92,6 +96,30 @@
                 }
             })
             .catch(err => console.error('설정 변경 실패:', err));
+        }
+
+        function deleteGroup() {
+            if (!confirm("정말 이 공동 가계부를 삭제하시겠습니까?\n(이 작업은 되돌릴 수 없으며, 모든 멤버가 더 이상 접근할 수 없습니다.)")) {
+                return;
+            }
+
+            const num = document.getElementById('settingGroupNum').value;
+            const params = new URLSearchParams({ groupNum: num });
+
+            fetch('${pageContext.request.contextPath}/group/delete.do', {
+                method: 'POST',
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.href = '${pageContext.request.contextPath}/group/list.do';
+                } else {
+                    alert("오류: " + data.message);
+                }
+            })
+            .catch(err => console.error('삭제 실패:', err));
         }
     </script>
 </body>
