@@ -43,4 +43,14 @@ public class GroupManageService {
 	public List<GroupDTO> getMyGroupList(int userNum) throws Exception {
 	    return GroupDAO.getInstance().getMyGroupList(userNum);
 	}
+	
+	// 그룹 생성
+	public void createGroup(GroupDTO dto) throws Exception {
+	    int count = GroupDAO.getInstance().checkGroupCount(dto.getGroupOwnerNum());
+	    if (count >= 10) {
+	        throw new IllegalStateException("최대 가입 가능한 공동 가계부(10개)를 초과했습니다.");
+	    }
+	    
+	    GroupDAO.getInstance().createGroup(dto);
+	}
 }

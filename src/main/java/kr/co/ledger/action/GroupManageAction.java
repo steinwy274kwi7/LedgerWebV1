@@ -22,6 +22,8 @@ public class GroupManageAction implements Action {
             case "getInvitations" -> getInvitations(request, response); 
             case "respondInvite"  -> respondInvite(request, response);
             case "list" 		  -> getMyGroupList(request, response);
+            case "createForm" 	  -> createForm(request, response);
+            case "create"         -> createGroup(request, response);
             default -> throw new IllegalArgumentException("GroupManageAction에 없는 기능: " + command);
         };
     }
@@ -101,4 +103,47 @@ public class GroupManageAction implements Action {
         
         return "/views/group_manage/groupList.jsp";
     }
+    
+    // 그룹 생성 폼 이동
+    private String createForm(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        if (request.getSession().getAttribute("loginUser") == null) {
+            return "redirect:" + request.getContextPath() + "/user/loginForm.do";
+        }
+        return "/views/group_manage/createForm.jsp";
+    }
+
+    // 실제 그룹 생성 처리
+    private String createGroup(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) {
+            return "redirect:" + request.getContextPath() + "/user/loginForm.do";
+        }
+
+        try {
+            String groupName = request.getParameter("groupName");
+            String groupDesc = request.getParameter("groupDesc");
+            String groupType = request.getParameter("groupType");
+            String groupOpenYn = request.getParameter("groupOpenYn");
+
+            if (groupName == null || groupName.trim().isEmpty() || groupName.length() > 20) {
+                throw new IllegalArgumentException("방 이름은 필수이며 최대 20자까지 가능합니다.");
+            }
+
+            GroupDTO dto = new GroupDTO();
+            dto.setGroupName(groupName.trim());
+            dto.setGroupDesc(groupDesc);
+            dto.setGroupType(groupType);
+            dto.setGroupOpenYn(groupOpenYn);
+            dto.setGroupOwnerNum(loginUser.getUserNum());
+
+            GroupManageService.getInstance().createGroup(dto);
+
+            return "redirect:" + request.getContextPath() + "/group/list.do";
+            
+        } catch (Exception e) {
+            request.setAttribute("msg", e.getMessage());
+            return "/views/group_manage/createForm.jsp";
+        }
+    }
+    
 }

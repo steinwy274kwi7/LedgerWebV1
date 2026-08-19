@@ -43,4 +43,65 @@ public class GroupDAO {
         }
         return list;
     }
+    
+    // 방 개수 체크
+    public int checkGroupCount(int userNum) throws Exception {
+        String sql = SqlManager.getSql("checkGroupCount");
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        return 0;
+    }
+
+    // 그룹 생성 및 방장 가입 트랜잭션
+    public void createGroup(GroupDTO dto) throws Exception {
+        String sqlSeq = SqlManager.getSql("getGroupSeq");
+        String sqlGroup = SqlManager.getSql("insertGroup");
+        String sqlMember = SqlManager.getSql("insertGroupMemberOwner");
+
+        Connection conn = null;
+        try {
+            conn = DBManager.getConnection();
+            conn.setAutoCommit(false);
+
+            int newGroupNum = 0;
+            
+            try (PreparedStatement pstmtSeq = conn.prepareStatement(sqlSeq);
+                 ResultSet rs = pstmtSeq.executeQuery()) {
+                if (rs.next()) newGroupNum = rs.getInt(1);
+            }
+            
+            try (PreparedStatement pstmtGroup = conn.prepareStatement(sqlGroup)) {
+                pstmtGroup.setInt(1, newGroupNum);
+                pstmtGroup.setString(2, dto.getGroupName());
+                pstmtGroup.setString(3, dto.getGroupDesc());
+                pstmtGroup.setString(4, dto.getGroupType());
+                pstmtGroup.setInt(5, dto.getGroupOwnerNum());
+                pstmtGroup.setString(6, dto.getGroupOpenYn() != null ? dto.getGroupOpenYn() : "N");
+                pstmtGroup.executeUpdate();
+            }
+
+            try (PreparedStatement pstmtMember = conn.prepareStatement(sqlMember)) {
+                pstmtMember.setInt(1, newGroupNum);
+                pstmtMember.setInt(2, dto.getGroupOwnerNum());
+                pstmtMember.executeUpdate();
+            }
+
+            conn.commit();
+            
+        } catch (Exception e) {
+            if (conn != null) conn.rollback();
+            throw e;
+        } finally {
+            if (conn != null) {
+                conn.setAutoCommit(true);
+                conn.close();
+            }
+        }
+    }
+    
 }

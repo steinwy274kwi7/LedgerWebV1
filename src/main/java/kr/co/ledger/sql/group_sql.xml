@@ -17,4 +17,35 @@
         ]]>
     </entry>
     
+    <!-- 내가 속한 방 개수 확인 (최대 10개 제한용) -->
+	<entry key="checkGroupCount">
+	    <![CDATA[
+	    SELECT COUNT(*) FROM GROUP_MEMBERS 
+	    WHERE USER_NUM = ? AND MEMBER_STATUS = 'A'
+	    ]]>
+	</entry>
+	
+	<!-- 새로운 그룹 방 번호(시퀀스) 미리 가져오기 -->
+	<entry key="getGroupSeq">
+	    <![CDATA[
+	    SELECT SEQ_GROUPS.NEXTVAL FROM DUAL
+	    ]]>
+	</entry>
+	
+	<!-- 그룹 방 생성 -->
+	<entry key="insertGroup">
+	    <![CDATA[
+	    INSERT INTO GROUPS (GROUP_NUM, GROUP_NAME, GROUP_DESC, GROUP_TYPE, GROUP_OWNER_NUM, GROUP_OPEN_YN, SETTLE_USE_YN, USE_YN, CREATED_AT)
+	    VALUES (?, ?, ?, ?, ?, ?, 'Y', 'Y', SYSDATE)
+	    ]]>
+	</entry>
+	
+	<!-- 방장을 방 멤버로 자동 추가 -->
+	<entry key="insertGroupMemberOwner">
+	    <![CDATA[
+	    INSERT INTO GROUP_MEMBERS (MEMBER_NUM, GROUP_NUM, USER_NUM, JOIN_DATE, MEMBER_STATUS)
+	    VALUES (SEQ_GROUP_MEMBERS.NEXTVAL, ?, ?, SYSDATE, 'A')
+	    ]]>
+	</entry>
+	
 </properties>
