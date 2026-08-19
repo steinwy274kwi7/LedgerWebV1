@@ -173,6 +173,7 @@ public class PersonalTransactionDAO {
                     PersonalTransactionDTO dto = new PersonalTransactionDTO();
                     dto.setTransNum(rs.getInt("TRANS_NUM"));
                     dto.setTransType(rs.getString("TRANS_TYPE"));
+                    dto.setCategoryNum(rs.getInt("CATEGORY_NUM"));
                     dto.setCategoryName(rs.getString("CATEGORY_NAME"));
                     dto.setTransAmount(rs.getLong("TRANS_AMOUNT"));
                     dto.setTransDate(rs.getString("TRANS_DATE"));
@@ -182,5 +183,47 @@ public class PersonalTransactionDAO {
             }
         }
         return list;
+    }
+    
+ // 1. 개인 수입지출 등록
+    public void insertTransaction(PersonalTransactionDTO dto) throws Exception {
+        String sql = SqlManager.getSql("insertPersonalTransaction");
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, dto.getUserNum());
+            pstmt.setInt(2, dto.getCategoryNum());
+            pstmt.setString(3, dto.getTransType());
+            pstmt.setLong(4, dto.getTransAmount());
+            pstmt.setString(5, dto.getTransDate());
+            pstmt.setString(6, dto.getTransMemo());
+            pstmt.executeUpdate();
+        }
+    }
+
+    // 개인 수입지출 수정
+    public void updateTransaction(PersonalTransactionDTO dto) throws Exception {
+        String sql = SqlManager.getSql("updatePersonalTransaction");
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, dto.getCategoryNum());
+            pstmt.setString(2, dto.getTransType());
+            pstmt.setLong(3, dto.getTransAmount());
+            pstmt.setString(4, dto.getTransDate());
+            pstmt.setString(5, dto.getTransMemo());
+            pstmt.setInt(6, dto.getTransNum());
+            pstmt.setInt(7, dto.getUserNum());
+            pstmt.executeUpdate();
+        }
+    }
+
+    // 개인 수입지출 삭제
+    public void deleteTransaction(int transNum, int userNum) throws Exception {
+        String sql = SqlManager.getSql("deletePersonalTransaction");
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, transNum);
+            pstmt.setInt(2, userNum);
+            pstmt.executeUpdate();
+        }
     }
 }

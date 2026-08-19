@@ -63,4 +63,20 @@ public class PersonalLedgerService {
     public List<PersonalTransactionDTO> getTransactionList(int userNum, String month, String date, String type, String keyword) throws Exception {
         return PersonalTransactionDAO.getInstance().getTransactionList(userNum, month, date, type, keyword);
     }
+    
+    // 개인 수입지출 등록
+    public void insertTransaction(PersonalTransactionDTO dto) throws Exception {
+        PersonalTransactionDAO.getInstance().insertTransaction(dto);
+    }
+    
+    // 개인 수입지출 수정
+    public void updateTransaction(PersonalTransactionDTO dto) throws Exception {
+        PersonalTransactionDAO.getInstance().updateTransaction(dto);
+    }
+    
+    // 개인 수입지출 삭제
+    public void deleteTransaction(int transNum, int userNum) throws Exception {
+        PersonalTransactionDAO.getInstance().deleteTransaction(transNum, userNum);
+    }
+    
 }

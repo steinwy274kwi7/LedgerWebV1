@@ -1,6 +1,7 @@
 package kr.co.ledger.action;
 
 import java.io.PrintWriter;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,6 +31,8 @@ public class PersonalLedgerAction implements Action {
             case "getCalendarData" 		-> getCalendarData(request, response);
             case "getTransactionList" 	-> getTransactionList(request, response);
             case "calendar" 			-> "/views/personal_ledger/personal_calendar.jsp";
+            case "saveTransaction" 		-> saveTransaction(request, response);
+            case "deleteTransaction" 	-> deleteTransaction(request, response);
             default -> throw new IllegalArgumentException("PersonalLedgerAction에 없는 기능: " + command);
         };
     }
@@ -212,6 +215,7 @@ public class PersonalLedgerAction implements Action {
             json.append("{")
                 .append("\"transNum\":").append(dto.getTransNum()).append(",")
                 .append("\"transType\":\"").append(dto.getTransType()).append("\",")
+                .append("\"categoryNum\":").append(dto.getCategoryNum()).append(",")
                 .append("\"categoryName\":\"").append(dto.getCategoryName()).append("\",")
                 .append("\"transAmount\":").append(dto.getTransAmount()).append(",")
                 .append("\"transDate\":\"").append(dto.getTransDate()).append("\",")
@@ -225,4 +229,63 @@ public class PersonalLedgerAction implements Action {
         out.flush();
         return null;
     }
+    
+    // 개인 수입지출 등록 수정
+    private String saveTransaction(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        try {
+            String transNumStr = request.getParameter("transNum");
+            String transDate = request.getParameter("transDate");
+            long transAmount = Long.parseLong(request.getParameter("transAmount"));
+            String transMemo = request.getParameter("transMemo");
+            
+            LocalDate inputDate = LocalDate.parse(transDate);
+            if (inputDate.isAfter(LocalDate.now())) {
+                out.print("{\"success\":false, \"message\":\"미래 날짜는 등록할 수 없습니다.\"}"); return null;
+            }
+            
+            if (transAmount <= 0) {
+                out.print("{\"success\":false, \"message\":\"금액은 1원 이상이어야 합니다.\"}"); return null;
+            }
+            
+            if (transMemo != null && transMemo.length() > 100) {
+                out.print("{\"success\":false, \"message\":\"메모는 100자를 초과할 수 없습니다.\"}"); return null;
+            }
+
+            PersonalTransactionDTO dto = new PersonalTransactionDTO();
+            dto.setUserNum(loginUser.getUserNum());
+            dto.setTransDate(transDate);
+            dto.setTransType(request.getParameter("transType"));
+            dto.setCategoryNum(Integer.parseInt(request.getParameter("categoryNum")));
+            dto.setTransAmount(transAmount);
+            dto.setTransMemo(transMemo);
+
+            if (transNumStr == null || transNumStr.isEmpty()) {
+                PersonalLedgerService.getInstance().insertTransaction(dto);
+            } else {
+                dto.setTransNum(Integer.parseInt(transNumStr));
+                PersonalLedgerService.getInstance().updateTransaction(dto);
+            }
+            out.print("{\"success\":true}");
+        } catch (Exception e) {
+            out.print("{\"success\":false, \"message\":\"처리 중 오류가 발생했습니다.\"}");
+        }
+        return null;
+    }
+
+    // 개인 수입지출 삭제
+    private String deleteTransaction(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        int transNum = Integer.parseInt(request.getParameter("transNum"));
+        
+        PersonalLedgerService.getInstance().deleteTransaction(transNum, loginUser.getUserNum());
+        
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().print("{\"success\":true}");
+        return null;
+    }
+    
 }

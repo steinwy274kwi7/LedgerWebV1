@@ -63,6 +63,7 @@
 	    SELECT 
 	        T.TRANS_NUM, 
 	        T.TRANS_TYPE, 
+	        T.CATEGORY_NUM,
 	        C.CATEGORY_NAME, 
 	        T.TRANS_AMOUNT, 
 	        TO_CHAR(T.TRANS_DATE, 'YYYY-MM-DD') AS TRANS_DATE, 
@@ -70,6 +71,33 @@
 	    FROM PERSONAL_TRANSACTIONS T
 	    JOIN PERSONAL_CATEGORIES C ON T.CATEGORY_NUM = C.CATEGORY_NUM
 	    WHERE T.USER_NUM = ? AND T.USE_YN = 'Y'
+	    ]]>
+	</entry>
+
+	<!-- 개인 수입지출 등록 -->
+	<entry key="insertPersonalTransaction">
+	    <![CDATA[
+	    INSERT INTO PERSONAL_TRANSACTIONS 
+	    (TRANS_NUM, USER_NUM, CATEGORY_NUM, TRANS_TYPE, TRANS_AMOUNT, TRANS_DATE, TRANS_MEMO)
+	    VALUES (SEQ_PERSONAL_TRANSACTIONS.NEXTVAL, ?, ?, ?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?)
+	    ]]>
+	</entry>
+	
+	<!-- 개인 수입지출 수정 -->
+	<entry key="updatePersonalTransaction">
+	    <![CDATA[
+	    UPDATE PERSONAL_TRANSACTIONS
+	    SET CATEGORY_NUM = ?, TRANS_TYPE = ?, TRANS_AMOUNT = ?, TRANS_DATE = TO_DATE(?, 'YYYY-MM-DD'), TRANS_MEMO = ?
+	    WHERE TRANS_NUM = ? AND USER_NUM = ?
+	    ]]>
+	</entry>
+	
+	<!-- 개인 수입지출 삭제 -->
+	<entry key="deletePersonalTransaction">
+	    <![CDATA[
+	    UPDATE PERSONAL_TRANSACTIONS 
+	    SET USE_YN = 'N' 
+	    WHERE TRANS_NUM = ? AND USER_NUM = ?
 	    ]]>
 	</entry>
 

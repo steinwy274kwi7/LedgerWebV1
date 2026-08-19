@@ -32,6 +32,7 @@
             <input type="text" id="keyword" placeholder="메모 내용 검색" onkeyup="if(event.keyCode==13) applyFilters()">
             <button onclick="applyFilters()">검색</button>
             <button onclick="resetFilters()" style="background:#007BFF;">이번 달 전체보기</button>
+            <button onclick="openModal()" style="background:#28a745; color:white; margin-left:10px;">+ 내역 추가</button>
             
             <span id="dateLabel" style="margin-left:auto; font-weight:bold; color:#333;">이번 달 전체 내역</span>
         </div>
@@ -50,6 +51,28 @@
                 
             </tbody>
         </table>
+    </div>
+
+    <div id="txModal" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, 0); background:#fff; padding:20px; border:1px solid #ccc; box-shadow:0 5px 15px rgba(0,0,0,0.3); z-index:1000;">
+        <h3 id="modalTitle">내역 등록</h3>
+        <input type="hidden" id="modalTransNum">
+        
+        <p>날짜: <input type="date" id="modalDate"></p>
+        <p>분류: 
+            <label><input type="radio" name="modalType" value="I"> 수입</label>
+            <label><input type="radio" name="modalType" value="E" checked> 지출</label>
+        </p>
+        <p>카테고리: 
+            <select id="modalCategory">
+                <option value="">카테고리 선택</option>
+            </select>
+        </p>
+        <p>금액: <input type="number" id="modalAmount" placeholder="0"></p>
+        <p>메모: <input type="text" id="modalMemo" maxlength="100" placeholder="최대 100자"></p>
+        
+        <button onclick="saveTransaction()">저장</button>
+        <button id="btnDelete" onclick="deleteTransaction()" style="background:#dc3545; color:white; display:none;">삭제</button>
+        <button onclick="closeModal()">취소</button>
     </div>
 
     <script>
@@ -158,13 +181,14 @@
                         let typeHtml = isIncome ? '<span style="color:#36A2EB;font-weight:bold;">수입</span>' : '<span style="color:#FF6384;font-weight:bold;">지출</span>';
                         let amountHtml = isIncome ? '+' + item.transAmount.toLocaleString() : '-' + item.transAmount.toLocaleString();
                         
-                        let tr = '<tr>' +
+                        let tr = '<tr onclick="openModal(\'' + item.transNum + '\', \'' + item.transDate + '\', \'' + item.transType + '\', \'' + item.categoryNum + '\', \'' + item.transAmount + '\', \'' + (item.transMemo || '') + '\')" style="cursor:pointer;">' +
                             '<td>' + item.transDate + '</td>' +
                             '<td>' + typeHtml + '</td>' +
                             '<td>' + item.categoryName + '</td>' +
                             '<td style="text-align:right; padding-right:20px;">' + amountHtml + '원</td>' +
-                            '<td style="text-align:left; padding-left:20px;">' + item.transMemo + '</td>' +
+                            '<td style="text-align:left; padding-left:20px;">' + (item.transMemo || '') + '</td>' +
                             '</tr>';
+                                                
                         tbody.innerHTML += tr;
                     });
                 })
@@ -178,6 +202,74 @@
             document.getElementById('dateLabel').innerText = '이번 달 전체 내역';
             
             applyFilters();
+        }
+        
+        function openModal(num = '', date = '', type = 'E', cat = '', amt = '', memo = '') {
+            document.getElementById('modalTransNum').value = num;
+            document.getElementById('modalDate').value = date || new Date().toISOString().split('T')[0];
+            document.querySelector('input[name="modalType"][value="' + type + '"]').checked = true;
+            document.getElementById('modalCategory').value = cat;
+            document.getElementById('modalAmount').value = amt;
+            document.getElementById('modalMemo').value = memo;
+            document.getElementById('modalTitle').innerText = num === '' ? '내역 등록' : '내역 수정';
+            
+            document.getElementById('btnDelete').style.display = num === '' ? 'none' : 'inline-block';
+           
+            document.getElementById('txModal').style.display = 'block';
+        }
+
+        function closeModal() { document.getElementById('txModal').style.display = 'none'; }
+
+        function saveTransaction() {
+            const num = document.getElementById('modalTransNum').value;
+            const date = document.getElementById('modalDate').value;
+            const type = document.querySelector('input[name="modalType"]:checked').value;
+            const cat = document.getElementById('modalCategory').value;
+            const amt = document.getElementById('modalAmount').value;
+            const memo = document.getElementById('modalMemo').value;
+
+            if (!date) { alert("날짜를 선택하세요."); return; }
+            if (new Date(date) > new Date()) { alert("미래 날짜는 등록할 수 없습니다."); return; }
+            if (amt <= 0) { alert("금액은 1원 이상이어야 합니다."); return; }
+            if (memo.length > 100) { alert("메모는 100자를 넘을 수 없습니다."); return; }
+            if (!cat) { alert("카테고리를 선택해주세요."); return; }
+            
+            const params = new URLSearchParams({
+                transNum: num, transDate: date, transType: type, 
+                categoryNum: cat, transAmount: amt, transMemo: memo
+            });
+
+            fetch('${pageContext.request.contextPath}/personal/saveTransaction.do', {
+                method: 'POST',
+                body: params
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    alert("저장되었습니다!");
+                    closeModal();
+                    applyFilters(); 
+                } else {
+                    alert(data.message); 
+                }
+            });
+        }
+        
+        function deleteTransaction() {
+            const num = document.getElementById('modalTransNum').value;
+            
+            if (!confirm('정말 이 내역을 삭제하시겠습니까?')) return;
+
+            fetch('${pageContext.request.contextPath}/personal/deleteTransaction.do?transNum=' + num)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("삭제되었습니다.");
+                        closeModal();
+                        applyFilters(); 
+                    } else {
+                        alert("삭제 실패: " + data.message);
+                    }
+                })
+                .catch(err => console.error('삭제 요청 실패:', err));
         }
     </script>
 </body>
