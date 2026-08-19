@@ -131,4 +131,26 @@
 	    ]]>
 	</entry>
 
+	<!-- 남은 멤버 중 가입일이 가장 빠른 멤버 1명 조회 (방장 본인 제외) -->
+	<entry key="getOldestMember">
+	    <![CDATA[
+	    SELECT USER_NUM 
+	    FROM (
+	        SELECT USER_NUM 
+	        FROM GROUP_MEMBERS 
+	        WHERE GROUP_NUM = ? AND USER_NUM != ? AND MEMBER_STATUS = 'A'
+	        ORDER BY JOIN_DATE ASC, MEMBER_NUM ASC
+	    ) WHERE ROWNUM = 1
+	    ]]>
+	</entry>
+	
+	<!-- 방장 권한 위임 (GROUPS 테이블의 방장 번호 업데이트) -->
+	<entry key="updateGroupOwner">
+	    <![CDATA[
+	    UPDATE GROUPS 
+	    SET GROUP_OWNER_NUM = ? 
+	    WHERE GROUP_NUM = ?
+	    ]]>
+	</entry>
+
 </properties>

@@ -230,4 +230,29 @@ public class GroupDAO {
         }
     }
     
+    // 위임받을 가장 오래된 멤버 번호 조회 (없으면 0 반환)
+    public int getOldestMember(int groupNum, int currentOwnerNum) throws Exception {
+        String sql = SqlManager.getSql("getOldestMember");
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, groupNum);
+            pstmt.setInt(2, currentOwnerNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("USER_NUM");
+                }
+            }
+        }
+        return 0;
+    }
+
+    // 그룹 방장 변경 (권한 위임)
+    public void updateGroupOwner(int groupNum, int newOwnerNum) throws Exception {
+        String sql = SqlManager.getSql("updateGroupOwner");
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, newOwnerNum);
+            pstmt.setInt(2, groupNum);
+            pstmt.executeUpdate();
+        }
+    }
+    
 }

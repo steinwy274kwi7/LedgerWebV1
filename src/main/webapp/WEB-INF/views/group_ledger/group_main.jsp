@@ -87,12 +87,10 @@
             <!-- JS로 동적 생성됨 -->
         </ul>
         
-        <!-- 일반 멤버(방장이 아닌 사람)에게만 노출되는 자진 탈퇴 버튼 -->
-        <c:if test="${group.groupOwnerNum != loginUser.userNum}">
-            <div style="margin-top: 20px; text-align: center;">
-                <button onclick="leaveGroup()" style="width: 100%; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🚪 이 방 나가기</button>
-            </div>
-        </c:if>
+        <!-- 자진 탈퇴 버튼 -->
+        <div style="margin-top: 20px; text-align: center;">
+        	<button onclick="leaveGroup()" style="width: 100%; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🚪 이 방 나가기</button>
+        </div>
     </div>
     
     <script>
@@ -269,9 +267,17 @@
             .catch(err => console.error('강퇴 실패:', err));
         }
 
-        // 자진 탈퇴 처리
+        // 자진 탈퇴 처리 (방장/멤버 동적 처리)
         function leaveGroup() {
-            if (!confirm("정말 이 공동 가계부에서 나가시겠습니까?\n(미정산 잔액과 무관하게 즉시 탈퇴 처리됩니다.)")) {
+            let confirmMsg = "";
+            
+            if (currentUserNum === groupOwnerNum) {
+                confirmMsg = "정말 이 공동 가계부에서 나가시겠습니까?\n(방장 권한은 가입일이 가장 빠른 멤버에게 자동 위임되며, 남은 멤버가 없을 경우 방이 즉시 삭제됩니다.)";
+            } else {
+                confirmMsg = "정말 이 공동 가계부에서 나가시겠습니까?\n(미정산 잔액과 무관하게 즉시 탈퇴 처리됩니다.)";
+            }
+
+            if (!confirm(confirmMsg)) {
                 return;
             }
             
@@ -286,7 +292,7 @@
             .then(data => {
                 if (data.success) {
                     alert(data.message);
-                    window.location.href = '${pageContext.request.contextPath}/group/list.do';
+                    window.location.href = '${pageContext.request.contextPath}/group/list.do'; // 공통: 탈퇴 후 목록으로 이동
                 } else {
                     alert("오류: " + data.message);
                 }

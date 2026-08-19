@@ -130,14 +130,29 @@ public class GroupManageService {
 	    GroupDAO.getInstance().withdrawGroupMember(groupNum, targetUserNum);
 	}
 
-	// 자진 탈퇴 처리 (일반 멤버 전용)
+	// 자진 탈퇴 및 방장 자동 위임 로직
 	public void leaveGroup(int groupNum, int requestUserNum) throws Exception {
-	    GroupDTO group = GroupDAO.getInstance().getGroupInfo(groupNum);
+	    GroupDAO dao = GroupDAO.getInstance();
+	    GroupDTO group = dao.getGroupInfo(groupNum);
 	    
+	    // 1. 방장이 나가는 경우
 	    if (group.getGroupOwnerNum() == requestUserNum) {
-	        throw new IllegalStateException("방장은 자진 탈퇴가 불가능합니다. 방 설정에서 [방 삭제하기]를 이용해 주세요.");
+	        // 가장 오래된 멤버 번호 찾기
+	        int oldestMemberNum = dao.getOldestMember(groupNum, requestUserNum);
+	        
+	        if (oldestMemberNum > 0) {
+	            // [상황 A] 남은 멤버가 있다 -> 권한 위임 후 탈퇴
+	            dao.updateGroupOwner(groupNum, oldestMemberNum);
+	            dao.withdrawGroupMember(groupNum, requestUserNum);
+	        } else {
+	            // [상황 B] 남은 멤버가 0명이다 -> 방 삭제(비활성화) 후 탈퇴
+	            dao.deleteGroup(groupNum, requestUserNum);
+	            dao.withdrawGroupMember(groupNum, requestUserNum);
+	        }
+	    } 
+	    // 2. 일반 멤버가 나가는 경우
+	    else {
+	        dao.withdrawGroupMember(groupNum, requestUserNum);
 	    }
-	    
-	    GroupDAO.getInstance().withdrawGroupMember(groupNum, requestUserNum);
 	}
 }
