@@ -5,6 +5,7 @@ import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.co.ledger.dto.GroupDTO;
+import kr.co.ledger.dto.GroupMemberDTO;
 import kr.co.ledger.dto.InvitationDTO;
 import kr.co.ledger.dto.UserDTO;
 import kr.co.ledger.service.GroupManageService;
@@ -27,6 +28,9 @@ public class GroupManageAction implements Action {
             case "updateSettings" -> updateGroupSettings(request, response);
             case "delete" 		  -> deleteGroup(request, response);
             case "sendInvite" 	  -> sendInvite(request, response);
+            case "getMemberList"  -> getMemberList(request, response);
+            case "kickMember"     -> kickMember(request, response);
+            case "leaveGroup"     -> leaveGroup(request, response);
             default -> throw new IllegalArgumentException("GroupManageAction에 없는 기능: " + command);
         };
     }
@@ -242,6 +246,85 @@ public class GroupManageAction implements Action {
             out.flush();
         }
         return null; 
+    }
+    
+    // 멤버 목록 로드
+    private String getMemberList(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+        
+        List<GroupMemberDTO> list = GroupManageService.getInstance().getGroupMemberList(groupNum);
+        
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            GroupMemberDTO m = list.get(i);
+            json.append("{");
+            json.append("\"userNum\":").append(m.getUserNum()).append(",");
+            json.append("\"userId\":\"").append(m.getUserId()).append("\",");
+            json.append("\"userNickname\":\"").append(m.getUserNickname()).append("\",");
+            json.append("\"joinDate\":\"").append(m.getJoinDate()).append("\"");
+            json.append("}");
+            
+            if (i < list.size() - 1) json.append(",");
+        }
+        json.append("]");
+        
+        out.print(json.toString());
+        out.flush();
+        return null;
+    }
+
+    // 멤버 강퇴 처리 (방장 전용)
+    private String kickMember(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        if (loginUser == null) {
+            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
+            return null;
+        }
+        
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            int targetUserNum = Integer.parseInt(request.getParameter("targetUserNum"));
+            
+            GroupManageService.getInstance().kickMember(groupNum, targetUserNum, loginUser.getUserNum());
+            
+            out.print("{\"success\": true, \"message\": \"멤버를 강퇴했습니다.\"}");
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally { 
+            out.flush(); 
+        }
+        return null;
+    }
+
+    // 자진 탈퇴 처리 (일반 멤버 전용)
+    private String leaveGroup(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        if (loginUser == null) {
+            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
+            return null;
+        }
+        
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            
+            GroupManageService.getInstance().leaveGroup(groupNum, loginUser.getUserNum());
+            
+            out.print("{\"success\": true, \"message\": \"그룹에서 성공적으로 탈퇴했습니다.\"}");
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally { 
+            out.flush(); 
+        }
+        return null;
     }
     
 }

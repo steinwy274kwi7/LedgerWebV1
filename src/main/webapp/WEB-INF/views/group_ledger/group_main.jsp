@@ -11,6 +11,7 @@
         <!-- 1. 그룹 헤더 영역 (방장일 때만 톱니바퀴 노출) -->
        <div style="display: flex; align-items: center; gap: 10px;">
 		    <h2 id="displayGroupName" style="margin: 0;">${group.groupName}</h2>
+		    <button onclick="openMemberModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="멤버 목록">👥</button>
 		    
 		    <c:if test="${group.groupOwnerNum == loginUser.userNum}">
 		        <button onclick="openInviteModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="멤버 초대">➕</button>
@@ -74,6 +75,26 @@
 	    </div>
 	</div>
 
+	<!-- 멤버 관리 모달창 -->
+    <div id="memberModal" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 450px; z-index:1000;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0;">그룹 멤버 관리</h3>
+            <button onclick="closeMemberModal()" style="background: none; border: none; font-size: 1.2em; cursor: pointer;">❌</button>
+        </div>
+        
+        <!-- 실시간으로 멤버 리스트가 꽂힐 영역 -->
+        <ul id="memberListArea" style="list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto;">
+            <!-- JS로 동적 생성됨 -->
+        </ul>
+        
+        <!-- 일반 멤버(방장이 아닌 사람)에게만 노출되는 자진 탈퇴 버튼 -->
+        <c:if test="${group.groupOwnerNum != loginUser.userNum}">
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="leaveGroup()" style="width: 100%; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🚪 이 방 나가기</button>
+            </div>
+        </c:if>
+    </div>
+    
     <script>
         function openSettingsModal() {
             document.getElementById('settingsModal').style.display = 'block';
@@ -178,6 +199,101 @@
             })
             .catch(err => console.error('초대 에러:', err));
         }
+        
+     	// JSTL 값을 JS 변수로 가져오기 (권한 분기용)
+        const currentUserNum = parseInt('${loginUser.userNum}');
+        const groupOwnerNum = parseInt('${group.groupOwnerNum}');
+        
+        function openMemberModal() {
+            document.getElementById('memberModal').style.display = 'block';
+            loadMemberList();
+        }
+
+        function closeMemberModal() {
+            document.getElementById('memberModal').style.display = 'none';
+        }
+
+        // 멤버 목록 로드
+        function loadMemberList() {
+            const groupNum = document.getElementById('settingGroupNum').value;
+            
+            fetch('${pageContext.request.contextPath}/group/getMemberList.do?groupNum=' + groupNum)
+            .then(res => res.json())
+            .then(data => {
+                const listArea = document.getElementById('memberListArea');
+                listArea.innerHTML = '';
+                
+                data.forEach(m => {
+                    let li = document.createElement('li');
+                    li.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f0f0f0;";
+                    
+                    let nameHtml = `<div style="display: flex; flex-direction: column;">
+                                        <span><strong>\${m.userNickname}</strong> (\${m.userId}) \${m.userNum === groupOwnerNum ? '👑' : ''}</span>
+                                        <span style="font-size: 0.8em; color: #888;">가입일: \${m.joinDate}</span>
+                                    </div>`;
+                    
+                    let actionHtml = '';
+                    if (currentUserNum === groupOwnerNum && m.userNum !== groupOwnerNum) {
+                        actionHtml = `<button onclick="kickMember(\${m.userNum})" style="background: none; border: 1px solid #dc3545; color: #dc3545; padding: 5px 10px; border-radius: 3px; cursor: pointer;">강퇴</button>`;
+                    }
+                    
+                    li.innerHTML = nameHtml + actionHtml;
+                    listArea.appendChild(li);
+                });
+            })
+            .catch(err => console.error('멤버 목록 로드 실패:', err));
+        }
+
+        // 강퇴 처리
+        function kickMember(targetUserNum) {
+            if (!confirm("해당 멤버를 강퇴하시겠습니까?\n(미정산 잔액과 무관하게 즉시 이탈 처리됩니다.)")) {
+                return;
+            }
+            
+            const groupNum = document.getElementById('settingGroupNum').value;
+            const params = new URLSearchParams({ groupNum: groupNum, targetUserNum: targetUserNum });
+
+            fetch('${pageContext.request.contextPath}/group/kickMember.do', {
+                method: 'POST',
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    loadMemberList();
+                } else {
+                    alert("오류: " + data.message);
+                }
+            })
+            .catch(err => console.error('강퇴 실패:', err));
+        }
+
+        // 자진 탈퇴 처리
+        function leaveGroup() {
+            if (!confirm("정말 이 공동 가계부에서 나가시겠습니까?\n(미정산 잔액과 무관하게 즉시 탈퇴 처리됩니다.)")) {
+                return;
+            }
+            
+            const groupNum = document.getElementById('settingGroupNum').value;
+            const params = new URLSearchParams({ groupNum: groupNum });
+
+            fetch('${pageContext.request.contextPath}/group/leaveGroup.do', {
+                method: 'POST',
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.href = '${pageContext.request.contextPath}/group/list.do';
+                } else {
+                    alert("오류: " + data.message);
+                }
+            })
+            .catch(err => console.error('탈퇴 실패:', err));
+        }
+        
     </script>
 </body>
 </html>

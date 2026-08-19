@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import kr.co.ledger.dto.GroupDTO;
+import kr.co.ledger.dto.GroupMemberDTO;
 import kr.co.ledger.util.DBManager;
 import kr.co.ledger.util.SqlManager;
 
@@ -191,6 +192,41 @@ public class GroupDAO {
             pstmt.setInt(2, inviterNum);
             pstmt.setInt(3, inviteeNum);
             pstmt.executeUpdate();
+        }
+    }
+    
+    // 멤버 목록 가져오기
+    public List<GroupMemberDTO> getGroupMemberList(int groupNum) throws Exception {
+        String sql = SqlManager.getSql("getGroupMemberList");
+        List<GroupMemberDTO> list = new ArrayList<>();
+        
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, groupNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    GroupMemberDTO dto = new GroupMemberDTO();
+                    dto.setMemberNum(rs.getInt("MEMBER_NUM"));
+                    dto.setGroupNum(rs.getInt("GROUP_NUM"));
+                    dto.setUserNum(rs.getInt("USER_NUM"));
+                    dto.setJoinDate(rs.getString("JOIN_DATE"));
+                    dto.setMemberStatus(rs.getString("MEMBER_STATUS"));
+                    
+                    dto.setUserId(rs.getString("USER_ID"));
+                    dto.setUserNickname(rs.getString("USER_NICKNAME"));
+                    list.add(dto);
+                }
+            }
+        }
+        return list;
+    }
+
+    // 멤버 강퇴 탈퇴 처리
+    public boolean withdrawGroupMember(int groupNum, int userNum) throws Exception {
+        String sql = SqlManager.getSql("withdrawGroupMember");
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, groupNum);
+            pstmt.setInt(2, userNum);
+            return pstmt.executeUpdate() > 0;
         }
     }
     

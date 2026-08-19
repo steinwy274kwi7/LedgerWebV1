@@ -7,6 +7,7 @@ import kr.co.ledger.dao.GroupMemberDAO;
 import kr.co.ledger.dao.InvitationDAO;
 import kr.co.ledger.dao.UserDAO;
 import kr.co.ledger.dto.GroupDTO;
+import kr.co.ledger.dto.GroupMemberDTO;
 import kr.co.ledger.dto.InvitationDTO;
 import kr.co.ledger.dto.UserDTO;
 
@@ -110,4 +111,33 @@ public class GroupManageService {
 	    GroupDAO.getInstance().insertInvitation(groupNum, inviterNum, inviteeNum);
 	}
 	
+	// 멤버 목록 조회
+	public List<GroupMemberDTO> getGroupMemberList(int groupNum) throws Exception {
+	    return GroupDAO.getInstance().getGroupMemberList(groupNum);
+	}
+
+	// 강퇴 처리 (방장 전용)
+	public void kickMember(int groupNum, int targetUserNum, int requestUserNum) throws Exception {
+	    GroupDTO group = GroupDAO.getInstance().getGroupInfo(groupNum);
+	    
+	    if (group.getGroupOwnerNum() != requestUserNum) {
+	        throw new IllegalAccessException("방장만 멤버를 강퇴할 수 있습니다.");
+	    }
+	    if (group.getGroupOwnerNum() == targetUserNum) {
+	        throw new IllegalArgumentException("방장은 자신을 강퇴할 수 없습니다.");
+	    }
+	    
+	    GroupDAO.getInstance().withdrawGroupMember(groupNum, targetUserNum);
+	}
+
+	// 자진 탈퇴 처리 (일반 멤버 전용)
+	public void leaveGroup(int groupNum, int requestUserNum) throws Exception {
+	    GroupDTO group = GroupDAO.getInstance().getGroupInfo(groupNum);
+	    
+	    if (group.getGroupOwnerNum() == requestUserNum) {
+	        throw new IllegalStateException("방장은 자진 탈퇴가 불가능합니다. 방 설정에서 [방 삭제하기]를 이용해 주세요.");
+	    }
+	    
+	    GroupDAO.getInstance().withdrawGroupMember(groupNum, requestUserNum);
+	}
 }
