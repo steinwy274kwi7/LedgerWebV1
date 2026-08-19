@@ -26,6 +26,7 @@ public class GroupManageAction implements Action {
             case "create"         -> createGroup(request, response);
             case "updateSettings" -> updateGroupSettings(request, response);
             case "delete" 		  -> deleteGroup(request, response);
+            case "sendInvite" 	  -> sendInvite(request, response);
             default -> throw new IllegalArgumentException("GroupManageAction에 없는 기능: " + command);
         };
     }
@@ -211,4 +212,36 @@ public class GroupManageAction implements Action {
         
         return null; 
     }
+    
+    // 그룹 멤버 초대
+    private String sendInvite(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        if (loginUser == null) {
+            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
+            return null;
+        }
+
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            String inviteeId = request.getParameter("inviteeId").trim();
+            
+            if (inviteeId.isEmpty()) {
+                throw new IllegalArgumentException("초대할 아이디를 입력해 주세요.");
+            }
+
+            GroupManageService.getInstance().sendInvite(groupNum, loginUser.getUserNum(), inviteeId);
+            
+            out.print("{\"success\": true, \"message\": \"초대장이 성공적으로 발송되었습니다!\"}");
+            
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally {
+            out.flush();
+        }
+        return null; 
+    }
+    
 }

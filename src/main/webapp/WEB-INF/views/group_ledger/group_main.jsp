@@ -9,13 +9,14 @@
 <body>
     <div style="width: 1000px; margin: 20px auto; font-family: sans-serif;">
         <!-- 1. 그룹 헤더 영역 (방장일 때만 톱니바퀴 노출) -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <h2 id="displayGroupName" style="margin: 0;">${group.groupName}</h2>
-            
-            <c:if test="${group.groupOwnerNum == loginUser.userNum}">
-                <button onclick="openSettingsModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">⚙️</button>
-            </c:if>
-        </div>
+       <div style="display: flex; align-items: center; gap: 10px;">
+		    <h2 id="displayGroupName" style="margin: 0;">${group.groupName}</h2>
+		    
+		    <c:if test="${group.groupOwnerNum == loginUser.userNum}">
+		        <button onclick="openInviteModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="멤버 초대">➕</button>
+		        <button onclick="openSettingsModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="방 설정">⚙️</button>
+		    </c:if>
+		</div>
         <p id="displayGroupDesc" style="color: #666;">${group.groupDesc}</p>
 
         <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;">
@@ -55,6 +56,23 @@
             <button onclick="deleteGroup()" style="background:none; color:#dc3545; border:none; font-weight:bold; cursor:pointer; text-decoration:underline;">🗑️ 이 방 삭제하기</button>
         </div>
     </div>
+
+	<!-- 멤버 초대 모달창 -->
+	<div id="inviteModal" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 400px; z-index:1000;">
+	    <h3 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 10px;">멤버 초대하기</h3>
+	    
+	    <div style="margin-bottom: 15px;">
+	        <label style="display:block; font-weight:bold; margin-bottom:5px;">초대할 유저 아이디 검색</label>
+	        <div style="display:flex; gap:10px;">
+	            <input type="text" id="searchUserId" placeholder="아이디를 정확히 입력하세요" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;">
+	        </div>
+	    </div>
+	    
+	    <div style="display:flex; gap:10px; margin-top:20px;">
+	        <button onclick="sendGroupInvite()" style="flex:1; background:#28a745; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">초대장 발송</button>
+	        <button onclick="closeInviteModal()" style="flex:1; background:#6c757d; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">닫기</button>
+	    </div>
+	</div>
 
     <script>
         function openSettingsModal() {
@@ -120,6 +138,45 @@
                 }
             })
             .catch(err => console.error('삭제 실패:', err));
+        }
+        
+        function openInviteModal() {
+            document.getElementById('inviteModal').style.display = 'block';
+            document.getElementById('searchUserId').value = '';
+        }
+
+        function closeInviteModal() {
+            document.getElementById('inviteModal').style.display = 'none';
+        }
+
+        function sendGroupInvite() {
+            const userId = document.getElementById('searchUserId').value.trim();
+            const groupNum = document.getElementById('settingGroupNum').value;
+
+            if (!userId) {
+                alert("초대할 유저의 아이디를 입력해 주세요.");
+                return;
+            }
+
+            const params = new URLSearchParams({
+                groupNum: groupNum,
+                inviteeId: userId
+            });
+
+            fetch('${pageContext.request.contextPath}/group/sendInvite.do', {
+                method: 'POST',
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    closeInviteModal();
+                } else {
+                    alert("초대 실패: " + data.message);
+                }
+            })
+            .catch(err => console.error('초대 에러:', err));
         }
     </script>
 </body>

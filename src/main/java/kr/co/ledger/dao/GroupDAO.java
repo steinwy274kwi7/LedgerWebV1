@@ -158,4 +158,40 @@ public class GroupDAO {
         }
     }
     
+    // 현재 멤버 수 조회
+    public int getGroupMemberCount(int groupNum) throws Exception {
+        String sql = SqlManager.getSql("getGroupMemberCount");
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, groupNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        return 0;
+    }
+
+    // 중복 가입 및 초대 확인
+    public boolean isUserAlreadyInGroupOrInvited(int groupNum, int userNum, String queryKey) throws Exception {
+        String sql = SqlManager.getSql(queryKey);
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, groupNum);
+            pstmt.setInt(2, userNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
+    // 초대장 DB 저장
+    public void insertInvitation(int groupNum, int inviterNum, int inviteeNum) throws Exception {
+        String sql = SqlManager.getSql("insertInvitation");
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, groupNum);
+            pstmt.setInt(2, inviterNum);
+            pstmt.setInt(3, inviteeNum);
+            pstmt.executeUpdate();
+        }
+    }
+    
 }

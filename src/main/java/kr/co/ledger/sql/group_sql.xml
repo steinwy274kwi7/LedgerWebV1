@@ -75,4 +75,33 @@
 	    ]]>
 	</entry>
 	
+	<!-- 현재 그룹 멤버 수 확인 (50명 정원 체크용) -->
+	<entry key="getGroupMemberCount">
+	    <![CDATA[
+	    SELECT COUNT(*) FROM GROUP_MEMBERS WHERE GROUP_NUM = ? AND MEMBER_STATUS = 'A'
+	    ]]>
+	</entry>
+	
+	<!-- 이미 멤버인지 확인 -->
+	<entry key="checkAlreadyMember">
+	    <![CDATA[
+	    SELECT COUNT(*) FROM GROUP_MEMBERS WHERE GROUP_NUM = ? AND USER_NUM = ? AND MEMBER_STATUS = 'A'
+	    ]]>
+	</entry>
+	
+	<!-- 이미 초대 대기 중인지 확인 -->
+	<entry key="checkAlreadyInvited">
+	    <![CDATA[
+	    SELECT COUNT(*) FROM INVITATIONS WHERE GROUP_NUM = ? AND INVITEE_NUM = ? AND INVITE_STATUS = 'P'
+	    ]]>
+	</entry>
+	
+	<!-- 초대장 발송 (INSERT) -->
+	<entry key="insertInvitation">
+	    <![CDATA[
+	    INSERT INTO INVITATIONS (INVITE_NUM, GROUP_NUM, INVITER_NUM, INVITEE_NUM, INVITE_STATUS, CREATED_AT)
+	    VALUES (SEQ_INVITATIONS.NEXTVAL, ?, ?, ?, 'P', SYSDATE)
+	    ]]>
+	</entry>
+
 </properties>

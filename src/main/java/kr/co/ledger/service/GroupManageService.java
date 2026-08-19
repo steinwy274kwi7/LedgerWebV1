@@ -5,8 +5,10 @@ import java.util.List;
 import kr.co.ledger.dao.GroupDAO;
 import kr.co.ledger.dao.GroupMemberDAO;
 import kr.co.ledger.dao.InvitationDAO;
+import kr.co.ledger.dao.UserDAO;
 import kr.co.ledger.dto.GroupDTO;
 import kr.co.ledger.dto.InvitationDTO;
+import kr.co.ledger.dto.UserDTO;
 
 public class GroupManageService {
 
@@ -75,6 +77,37 @@ public class GroupManageService {
 	    if (!isSuccess) {
 	        throw new IllegalAccessException("방장만 그룹을 삭제할 수 있거나, 이미 삭제된 방입니다.");
 	    }
+	}
+	
+	// 그룹 멤버 초대
+	public void sendInvite(int groupNum, int inviterNum, String inviteeId) throws Exception {
+	   
+	    int currentMembers = GroupDAO.getInstance().getGroupMemberCount(groupNum);
+	    if (currentMembers >= 50) {
+	        throw new IllegalStateException("그룹 정원(50명)이 가득 차서 더 이상 초대할 수 없습니다.");
+	    }
+	    
+	    UserDTO invitee = UserDAO.getInstance().getUserById(inviteeId);
+	    if (invitee == null) {
+	        throw new IllegalArgumentException("존재하지 않는 회원 아이디입니다.");
+	    }
+	    
+	    int inviteeNum = invitee.getUserNum();
+	    if (inviterNum == inviteeNum) {
+	        throw new IllegalArgumentException("자기 자신은 초대할 수 없습니다.");
+	    }
+	    
+	    boolean isMember = GroupDAO.getInstance().isUserAlreadyInGroupOrInvited(groupNum, inviteeNum, "checkAlreadyMember");
+	    if (isMember) {
+	        throw new IllegalStateException("이미 그룹에 참여 중인 멤버입니다.");
+	    }
+	    
+	    boolean isInvited = GroupDAO.getInstance().isUserAlreadyInGroupOrInvited(groupNum, inviteeNum, "checkAlreadyInvited");
+	    if (isInvited) {
+	        throw new IllegalStateException("이미 초대장이 발송되어 대기 중인 멤버입니다.");
+	    }
+	    
+	    GroupDAO.getInstance().insertInvitation(groupNum, inviterNum, inviteeNum);
 	}
 	
 }
