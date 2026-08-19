@@ -28,6 +28,11 @@
         <canvas id="groupPieChart"></canvas>
     </div>
 
+    <div class="ratio-container" style="width: 600px;">
+        <h3 style="margin-top: 0; text-align: center;">최근 6개월 전체 그룹 지출 추이</h3>
+        <canvas id="groupTrendChart"></canvas>
+    </div>
+
     <script>
         let groupPieChartInstance = null;
         function loadAllGroupsPieChart(month = '') {
@@ -81,8 +86,63 @@
                 });
         }
 
+        let groupTrendChartInstance = null;
+
+        function loadAllGroupsTrendChart(month = '') {
+            fetch('${pageContext.request.contextPath}/group/getTrendData.do?month=' + month)
+                .then(response => {
+                    if (!response.ok) throw new Error('서버 통신 에러');
+                    return response.json();
+                })
+                .then(data => {
+                    const labels = data.map(item => item.month);
+                    const expenses = data.map(item => item.totalExpense);
+
+                    if (groupTrendChartInstance != null) {
+                        groupTrendChartInstance.destroy();
+                    }
+
+                    const ctx = document.getElementById('groupTrendChart').getContext('2d');
+                    groupTrendChartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    type: 'line', 
+                                    label: '지출 추세선',
+                                    data: expenses,
+                                    borderColor: '#FF6384',
+                                    borderWidth: 2,
+                                    fill: false,
+                                    tension: 0.3
+                                },
+                                {
+                                    type: 'bar',
+                                    label: '지출 금액',
+                                    data: expenses,
+                                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                                    borderRadius: 4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: { beginAtZero: true }
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('최근 6개월 그룹 지출 추이 데이터를 불러오지 못했습니다.');
+                });
+        }
+
         window.onload = function() {
             loadAllGroupsPieChart(); 
+            loadAllGroupsTrendChart();
         };
     </script>
 </body>

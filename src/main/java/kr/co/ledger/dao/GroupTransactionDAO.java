@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.TrendDTO;
 import kr.co.ledger.util.DBManager;
 import kr.co.ledger.util.SqlManager;
 
@@ -31,6 +32,30 @@ public class GroupTransactionDAO {
                     ChartDTO dto = new ChartDTO();
                     dto.setCategoryName(rs.getString("CATEGORY_NAME"));
                     dto.setTotalAmount(rs.getLong("TOTAL_AMOUNT"));
+                    list.add(dto);
+                }
+            }
+        }
+        return list;
+    }
+    
+    // 그룹 6개월 추이
+    public List<TrendDTO> getAllMyGroupTrendForChart(int userNum, String targetMonth) throws Exception {
+        String sql = SqlManager.getSql("getAllMyGroupTrendForChart");
+        List<TrendDTO> list = new ArrayList<>();
+        
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, userNum);
+            pstmt.setString(2, targetMonth);
+            pstmt.setString(3, targetMonth);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    TrendDTO dto = new TrendDTO();
+                    dto.setMonth(rs.getString("TARGET_MONTH"));
+                    dto.setTotalExpense(rs.getLong("TOTAL_AMOUNT"));
                     list.add(dto);
                 }
             }

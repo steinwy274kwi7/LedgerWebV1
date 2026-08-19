@@ -22,4 +22,24 @@
 	    ]]>
 	</entry>
 
+	<!-- 그룹 6개월 추이 -->
+	<entry key="getAllMyGroupTrendForChart">
+	    <![CDATA[
+	    SELECT 
+	        TO_CHAR(T.TRANS_DATE, 'YYYY-MM') AS TARGET_MONTH,
+	        NVL(SUM(T.TRANS_AMOUNT), 0) AS TOTAL_AMOUNT
+	    FROM GROUP_TRANSACTIONS T
+	    WHERE T.GROUP_NUM IN (
+	        SELECT GROUP_NUM 
+	        FROM GROUP_MEMBERS 
+	        WHERE USER_NUM = ? AND MEMBER_STATUS = 'A'
+	    )
+	      AND T.TRANS_DATE >= ADD_MONTHS(TO_DATE(?, 'YYYY-MM'), -5)
+	      AND T.TRANS_DATE < ADD_MONTHS(TO_DATE(?, 'YYYY-MM'), 1)
+	      AND T.USE_YN = 'Y'
+	    GROUP BY TO_CHAR(T.TRANS_DATE, 'YYYY-MM')
+	    ORDER BY TARGET_MONTH
+	    ]]>
+	</entry>
+
 </properties>
