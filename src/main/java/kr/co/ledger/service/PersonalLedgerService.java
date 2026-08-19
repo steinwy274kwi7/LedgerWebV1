@@ -2,7 +2,9 @@ package kr.co.ledger.service;
 
 import java.util.List;
 import kr.co.ledger.dao.PersonalTransactionDAO;
+import kr.co.ledger.dto.CalendarDTO;
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.PersonalTransactionDTO;
 import kr.co.ledger.dto.RatioDTO;
 import kr.co.ledger.dto.TrendDTO;
 
@@ -50,5 +52,15 @@ public class PersonalLedgerService {
     // 개인 6개월 추이
     public List<TrendDTO> getRecent6MonthsTrend(int userNum, String targetMonth) throws Exception {
         return PersonalTransactionDAO.getInstance().getRecent6MonthsTrend(userNum, targetMonth);
+    }
+    
+    // 개인 달력 뷰
+    public List<CalendarDTO> getMonthlyCalendarData(int userNum, String targetMonth, String type, String keyword) throws Exception {
+        return PersonalTransactionDAO.getInstance().getMonthlyCalendarData(userNum, targetMonth, type, keyword);
+    }
+
+    // 개인 리스트 뷰
+    public List<PersonalTransactionDTO> getTransactionList(int userNum, String month, String date, String type, String keyword) throws Exception {
+        return PersonalTransactionDAO.getInstance().getTransactionList(userNum, month, date, type, keyword);
     }
 }

@@ -11,8 +11,17 @@ public class PersonalTransactionDTO {
     private String transMemo;
     private String useYn;
     private String createdAt;
+    private String categoryName;
     
-    public PersonalTransactionDTO() {}
+    public String getCategoryName() {
+		return categoryName;
+	}
+
+	public void setCategoryName(String categoryName) {
+		this.categoryName = categoryName;
+	}
+
+	public PersonalTransactionDTO() {}
 
 	public int getTransNum() {
 		return transNum;

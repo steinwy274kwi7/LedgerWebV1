@@ -45,4 +45,32 @@
 	    ]]>
 	</entry>
 	
+	<!-- 개인 달력 뷰 -->
+	<entry key="getMonthlyCalendarDataBase">
+	    <![CDATA[
+	    SELECT 
+	        TO_CHAR(TRANS_DATE, 'YYYY-MM-DD') AS TRANS_DATE,
+	        NVL(SUM(CASE WHEN TRANS_TYPE = 'I' THEN TRANS_AMOUNT ELSE 0 END), 0) AS DAILY_INCOME,
+	        NVL(SUM(CASE WHEN TRANS_TYPE = 'E' THEN TRANS_AMOUNT ELSE 0 END), 0) AS DAILY_EXPENSE
+	    FROM PERSONAL_TRANSACTIONS
+	    WHERE USER_NUM = ? AND USE_YN = 'Y'
+	    ]]>
+	</entry>
+	
+	<!-- 개인 리스트 뷰 -->
+	<entry key="getPersonalTransactionListBase">
+	    <![CDATA[
+	    SELECT 
+	        T.TRANS_NUM, 
+	        T.TRANS_TYPE, 
+	        C.CATEGORY_NAME, 
+	        T.TRANS_AMOUNT, 
+	        TO_CHAR(T.TRANS_DATE, 'YYYY-MM-DD') AS TRANS_DATE, 
+	        T.TRANS_MEMO
+	    FROM PERSONAL_TRANSACTIONS T
+	    JOIN PERSONAL_CATEGORIES C ON T.CATEGORY_NUM = C.CATEGORY_NUM
+	    WHERE T.USER_NUM = ? AND T.USE_YN = 'Y'
+	    ]]>
+	</entry>
+
 </properties>

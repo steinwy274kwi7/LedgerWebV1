@@ -5,8 +5,9 @@ import java.time.YearMonth;
 import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
+import kr.co.ledger.dto.CalendarDTO;
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.PersonalTransactionDTO;
 import kr.co.ledger.dto.RatioDTO;
 import kr.co.ledger.dto.TrendDTO;
 import kr.co.ledger.dto.UserDTO;
@@ -22,10 +23,13 @@ public class PersonalLedgerAction implements Action {
         String methodName = command.substring(command.lastIndexOf("/") + 1, command.lastIndexOf("."));
         
         return switch (methodName) {
-            case "getChartData" -> getChartData(request, response);
-            case "getRatioData" -> getRatioData(request, response);
-            case "statistics" -> "/views/personal_ledger/statistics.jsp";
-            case "getTrendData" -> getTrendData(request, response);
+            case "getChartData" 		-> getChartData(request, response);
+            case "getRatioData" 		-> getRatioData(request, response);
+            case "statistics" 			-> "/views/personal_ledger/statistics.jsp";
+            case "getTrendData" 		-> getTrendData(request, response);
+            case "getCalendarData" 		-> getCalendarData(request, response);
+            case "getTransactionList" 	-> getTransactionList(request, response);
+            case "calendar" 			-> "/views/personal_ledger/personal_calendar.jsp";
             default -> throw new IllegalArgumentException("PersonalLedgerAction에 없는 기능: " + command);
         };
     }
@@ -139,6 +143,86 @@ public class PersonalLedgerAction implements Action {
         out.print(json.toString());
         out.flush();
         
+        return null;
+    }
+    
+    // 개인 달력 뷰
+    private String getCalendarData(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
+            return null;
+        }
+
+        String targetMonth = request.getParameter("month");
+        if (targetMonth == null || targetMonth.isEmpty()) targetMonth = YearMonth.now().toString();
+
+        String type = request.getParameter("type");
+        if (type == null) type = "ALL";
+        String keyword = request.getParameter("keyword");
+
+        List<CalendarDTO> list = PersonalLedgerService.getInstance().getMonthlyCalendarData(loginUser.getUserNum(), targetMonth, type, keyword);
+        
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        StringBuilder json = new StringBuilder();
+        
+        json.append("[");
+        for (int i = 0; i < list.size(); i++) {
+            CalendarDTO dto = list.get(i);
+            json.append("{")
+                .append("\"date\":\"").append(dto.getDate()).append("\",")
+                .append("\"dailyIncome\":").append(dto.getDailyIncome()).append(",")
+                .append("\"dailyExpense\":").append(dto.getDailyExpense())
+                .append("}");
+            if (i < list.size() - 1) json.append(",");
+        }
+        json.append("]");
+        
+        out.print(json.toString());
+        out.flush();
+        return null;
+    }
+
+    // 개인 리스트 뷰
+    private String getTransactionList(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
+            return null;
+        }
+
+        String month = request.getParameter("month");
+        if (month == null || month.isEmpty()) month = YearMonth.now().toString();
+        
+        String date = request.getParameter("date");
+        String type = request.getParameter("type");
+        if (type == null) type = "ALL";
+        String keyword = request.getParameter("keyword");
+
+        List<PersonalTransactionDTO> list = PersonalLedgerService.getInstance().getTransactionList(loginUser.getUserNum(), month, date, type, keyword);
+        
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        StringBuilder json = new StringBuilder();
+        
+        json.append("[");
+        for (int i = 0; i < list.size(); i++) {
+            PersonalTransactionDTO dto = list.get(i);
+            json.append("{")
+                .append("\"transNum\":").append(dto.getTransNum()).append(",")
+                .append("\"transType\":\"").append(dto.getTransType()).append("\",")
+                .append("\"categoryName\":\"").append(dto.getCategoryName()).append("\",")
+                .append("\"transAmount\":").append(dto.getTransAmount()).append(",")
+                .append("\"transDate\":\"").append(dto.getTransDate()).append("\",")
+                .append("\"transMemo\":\"").append(dto.getTransMemo() == null ? "" : dto.getTransMemo().replace("\"", "\\\"")).append("\"")
+                .append("}");
+            if (i < list.size() - 1) json.append(",");
+        }
+        json.append("]");
+        
+        out.print(json.toString());
+        out.flush();
         return null;
     }
 }

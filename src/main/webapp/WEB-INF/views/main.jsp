@@ -49,7 +49,9 @@
     <h1>환영합니다, ${sessionScope.loginUser.userId}님!</h1>
     
     <a href="${pageContext.request.contextPath}/user/myPage.do">마이페이지</a><br>
-    <a href="${pageContext.request.contextPath}/user/logout.do">로그아웃</a>
+    <a href="${pageContext.request.contextPath}/user/logout.do">로그아웃</a><br>
+    <a href="${pageContext.request.contextPath}/personal/calendar.do">개인 가계부 이동</a><br>  
+    
     <br><br>
 
     <button onclick="openNotificationModal()" style="padding: 10px; cursor: pointer;">
