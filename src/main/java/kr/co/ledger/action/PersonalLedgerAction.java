@@ -52,7 +52,11 @@ public class PersonalLedgerAction implements Action {
             return null;
         }
 
-        int myUserNum = loginUser.getUserNum();
+        int targetUserNum = loginUser.getUserNum(); 
+        String targetNumStr = request.getParameter("targetUserNum");
+        if (targetNumStr != null && !targetNumStr.isEmpty()) {
+            targetUserNum = Integer.parseInt(targetNumStr);
+        }
         
         String transType = request.getParameter("type"); 
         if(transType == null) transType = "E";
@@ -62,7 +66,7 @@ public class PersonalLedgerAction implements Action {
             targetMonth = YearMonth.now().toString();
         }
         
-        List<ChartDTO> chartList = PersonalLedgerService.getInstance().getCategorySumForChart(myUserNum, transType, targetMonth);
+        List<ChartDTO> chartList = PersonalLedgerService.getInstance().getCategorySumForChart(targetUserNum, transType, targetMonth);
         
         response.setContentType("application/json;charset=UTF-8");
         PrintWriter out = response.getWriter();
@@ -93,15 +97,20 @@ public class PersonalLedgerAction implements Action {
             return null;
         }
 
-        int myUserNum = loginUser.getUserNum();
+        int targetUserNum = loginUser.getUserNum(); 
+        String targetNumStr = request.getParameter("targetUserNum");
+        if (targetNumStr != null && !targetNumStr.isEmpty()) {
+            targetUserNum = Integer.parseInt(targetNumStr);
+        }
+
         String targetMonth = request.getParameter("month");
         
         if(targetMonth == null || targetMonth.isEmpty()) {
             targetMonth = YearMonth.now().toString();
         }
 
-        RatioDTO ratioData = PersonalLedgerService.getInstance().calculateMonthlyRatio(myUserNum, targetMonth);
-
+        RatioDTO ratioData = PersonalLedgerService.getInstance().calculateMonthlyRatio(targetUserNum, targetMonth);
+        
         response.setContentType("application/json;charset=UTF-8");
         PrintWriter out = response.getWriter();
         
@@ -124,15 +133,20 @@ public class PersonalLedgerAction implements Action {
             return null;
         }
 
-        int myUserNum = loginUser.getUserNum();
+        int targetUserNum = loginUser.getUserNum(); 
+        String targetNumStr = request.getParameter("targetUserNum");
+        if (targetNumStr != null && !targetNumStr.isEmpty()) {
+            targetUserNum = Integer.parseInt(targetNumStr);
+        }
+
         String targetMonth = request.getParameter("month");
         
         if(targetMonth == null || targetMonth.isEmpty()) {
             targetMonth = YearMonth.now().toString();
         }
 
-        List<TrendDTO> trendList = PersonalLedgerService.getInstance().getRecent6MonthsTrend(myUserNum, targetMonth);
-
+        List<TrendDTO> trendList = PersonalLedgerService.getInstance().getRecent6MonthsTrend(targetUserNum, targetMonth);
+        
         response.setContentType("application/json;charset=UTF-8");
         PrintWriter out = response.getWriter();
         StringBuilder json = new StringBuilder();
@@ -163,6 +177,12 @@ public class PersonalLedgerAction implements Action {
             return null;
         }
 
+        int targetUserNum = loginUser.getUserNum();
+        String targetNumStr = request.getParameter("targetUserNum");
+        if (targetNumStr != null && !targetNumStr.isEmpty()) {
+            targetUserNum = Integer.parseInt(targetNumStr);
+        }
+
         String targetMonth = request.getParameter("month");
         if (targetMonth == null || targetMonth.isEmpty()) targetMonth = YearMonth.now().toString();
 
@@ -170,7 +190,7 @@ public class PersonalLedgerAction implements Action {
         if (type == null) type = "ALL";
         String keyword = request.getParameter("keyword");
 
-        List<CalendarDTO> list = PersonalLedgerService.getInstance().getMonthlyCalendarData(loginUser.getUserNum(), targetMonth, type, keyword);
+        List<CalendarDTO> list = PersonalLedgerService.getInstance().getMonthlyCalendarData(targetUserNum, targetMonth, type, keyword);
         
         response.setContentType("application/json;charset=UTF-8");
         PrintWriter out = response.getWriter();
@@ -201,6 +221,12 @@ public class PersonalLedgerAction implements Action {
             return null;
         }
 
+        int targetUserNum = loginUser.getUserNum();
+        String targetNumStr = request.getParameter("targetUserNum");
+        if (targetNumStr != null && !targetNumStr.isEmpty()) {
+            targetUserNum = Integer.parseInt(targetNumStr);
+        }
+
         String month = request.getParameter("month");
         if (month == null || month.isEmpty()) month = YearMonth.now().toString();
         
@@ -209,7 +235,7 @@ public class PersonalLedgerAction implements Action {
         if (type == null) type = "ALL";
         String keyword = request.getParameter("keyword");
 
-        List<PersonalTransactionDTO> list = PersonalLedgerService.getInstance().getTransactionList(loginUser.getUserNum(), month, date, type, keyword);
+        List<PersonalTransactionDTO> list = PersonalLedgerService.getInstance().getTransactionList(targetUserNum, month, date, type, keyword);
         
         response.setContentType("application/json;charset=UTF-8");
         PrintWriter out = response.getWriter();
@@ -300,7 +326,13 @@ public class PersonalLedgerAction implements Action {
         String type = request.getParameter("type");
         if (type == null) type = "E"; 
 
-        List<PersonalCategoryDTO> list = PersonalLedgerService.getInstance().getCategoryList(loginUser.getUserNum(), type);
+        int targetUserNum = loginUser.getUserNum();
+        String targetNumStr = request.getParameter("targetUserNum");
+        if (targetNumStr != null && !targetNumStr.isEmpty()) {
+            targetUserNum = Integer.parseInt(targetNumStr);
+        }
+
+        List<PersonalCategoryDTO> list = PersonalLedgerService.getInstance().getCategoryList(targetUserNum, type);
 
         response.setContentType("application/json;charset=UTF-8");
         PrintWriter out = response.getWriter();

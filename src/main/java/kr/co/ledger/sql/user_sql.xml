@@ -85,4 +85,15 @@
 	    ]]>
 	</entry>
 
+	<!-- 타인 가계부 검색 후 열람 -->
+	<entry key="searchPublicUsersById">
+	    <![CDATA[
+	    SELECT USER_NUM, USER_ID, USER_NICKNAME 
+	    FROM USERS 
+	    WHERE BOOK_OPEN_YN = 'Y' 
+	      AND USER_STATUS = 'A' 
+	      AND USER_ID LIKE '%' || ? || '%'
+	    ]]>
+	</entry>
+
 </properties>

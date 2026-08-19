@@ -3,6 +3,8 @@ package kr.co.ledger.dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 import kr.co.ledger.dto.UserDTO;
 import kr.co.ledger.util.DBManager;
@@ -195,4 +197,23 @@ public class UserDAO {
         }
     }
     
+    // 타인 가계부 검색 후 열람
+    public List<UserDTO> searchPublicUsersById(String keyword) throws Exception {
+        String sql = SqlManager.getSql("searchPublicUsersById");
+        List<UserDTO> list = new ArrayList<>();
+        try (Connection conn = DBManager.getConnection(); 
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, keyword);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    UserDTO dto = new UserDTO();
+                    dto.setUserNum(rs.getInt("USER_NUM"));
+                    dto.setUserId(rs.getString("USER_ID"));
+                    dto.setUserNickname(rs.getString("USER_NICKNAME"));
+                    list.add(dto);
+                }
+            }
+        }
+        return list;
+    }
 }

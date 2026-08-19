@@ -1,5 +1,8 @@
 package kr.co.ledger.action;
 
+import java.io.PrintWriter;
+import java.util.List;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.co.ledger.dto.UserDTO;
@@ -15,21 +18,22 @@ public class UserAction implements Action {
         String methodName = command.substring(command.lastIndexOf("/") + 1, command.lastIndexOf("."));
         
         return switch (methodName) {
-            case "registerForm" -> registerForm(request, response);
-            case "register"     -> register(request, response);
-            case "loginForm"    -> loginForm(request, response);
-            case "login"        -> login(request, response);
-            case "logout"       -> logout(request, response);
-            case "main"         -> mainDashboard(request, response);
-            case "findIdForm" 	-> findIdForm(request, response);
-            case "findId"       -> findId(request, response);
-            case "findPwForm" 	-> findPwForm(request, response);
-            case "findPw"     	-> findPw(request, response);
-            case "myPage" 		-> myPage(request, response);
-            case "updateForm" 	-> updateForm(request, response);
-            case "updateInfo" 	-> updateInfo(request, response);
-            case "withdraw" 	-> withdraw(request, response);
-            case "wakeup" 		-> wakeup(request, response);
+            case "registerForm" 		-> registerForm(request, response);
+            case "register"     		-> register(request, response);
+            case "loginForm"    		-> loginForm(request, response);
+            case "login"        		-> login(request, response);
+            case "logout"       		-> logout(request, response);
+            case "main"         		-> mainDashboard(request, response);
+            case "findIdForm" 			-> findIdForm(request, response);
+            case "findId"       		-> findId(request, response);
+            case "findPwForm" 			-> findPwForm(request, response);
+            case "findPw"     			-> findPw(request, response);
+            case "myPage" 				-> myPage(request, response);
+            case "updateForm" 			-> updateForm(request, response);
+            case "updateInfo" 			-> updateInfo(request, response);
+            case "withdraw" 			-> withdraw(request, response);
+            case "wakeup" 				-> wakeup(request, response);
+            case "searchPublicUser" 	-> searchPublicUser(request, response);
             default -> throw new IllegalArgumentException("UserAction에 없는 기능: " + command);
         };
     }
@@ -241,4 +245,24 @@ public class UserAction implements Action {
         return "/views/user/loginForm.jsp";
     }
     
+    // 타인 가계부 검색
+    private String searchPublicUser(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String keyword = request.getParameter("keyword");
+        
+        List<UserDTO> list = UserService.getInstance().searchPublicUsersById(keyword);
+        
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            UserDTO dto = list.get(i);
+            json.append("{\"userNum\":").append(dto.getUserNum())
+                .append(", \"userId\":\"").append(dto.getUserId())
+                .append("\", \"userNickname\":\"").append(dto.getUserNickname()).append("\"}");
+            if (i < list.size() - 1) json.append(",");
+        }
+        json.append("]");
+        out.print(json.toString());
+        return null;
+    }
 }

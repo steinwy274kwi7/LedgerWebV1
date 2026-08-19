@@ -1,6 +1,8 @@
 package kr.co.ledger.service;
 
 import org.mindrot.jbcrypt.BCrypt;
+
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -100,4 +102,8 @@ public class UserService {
 	    UserDAO.getInstance().updateBookOpenYn(userNum, bookOpenYn);
 	}
 	
+	// 타인 가계부 검색 후 열람
+	public List<UserDTO> searchPublicUsersById(String keyword) throws Exception {
+	    return UserDAO.getInstance().searchPublicUsersById(keyword);
+	}
 }

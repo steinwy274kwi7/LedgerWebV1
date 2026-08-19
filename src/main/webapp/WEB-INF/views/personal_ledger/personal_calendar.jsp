@@ -1,4 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -22,17 +23,41 @@
 <body>
     <div class="ledger-container">
     
-    	<!-- 타이틀 및 설정 뱃지 영역 -->
-		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-		    <h2 style="margin: 0; color: #333;">개인 가계부</h2>
-		    
-		    <button id="btnPublicToggle" onclick="togglePublicYn()" 
-		            style="padding: 6px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; border: none; transition: background-color 0.3s;
-		                   ${loginUser.bookOpenYn == 'Y' ? 'background-color: #17a2b8; color: white;' : 'background-color: #e2e3e5; color: #555;'}">
-		        ${loginUser.bookOpenYn == 'Y' ? '🔓 공개 모드' : '🔒 비공개 모드'}
-		    </button>
-		</div>
-		
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <c:choose>
+                    <%-- 남의 가계부 (읽기 전용 모드) --%>
+                    <c:when test="${not empty param.targetUserNum}">
+                        <h2 style="margin: 0; color: #333;">${param.targetNickname}님의 가계부</h2>
+                        <button onclick="location.href='${pageContext.request.contextPath}/personal/calendar.do'" 
+                                style="padding: 6px 15px; border-radius: 20px; background: #6c757d; color: white; border: none; cursor: pointer;">
+                            내 가계부로 돌아가기
+                        </button>
+                    </c:when>
+                    
+                    <%-- 내 가계부 --%>
+                    <c:otherwise>
+                        <h2 style="margin: 0; color: #333;">개인 가계부</h2>
+                        <button id="btnPublicToggle" onclick="togglePublicYn()" 
+                                style="padding: 6px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; border: none; transition: background-color 0.3s;
+                                       ${loginUser.bookOpenYn == 'Y' ? 'background-color: #17a2b8; color: white;' : 'background-color: #e2e3e5; color: #555;'}">
+                            ${loginUser.bookOpenYn == 'Y' ? '공개 모드' : '비공개 모드'}
+                        </button>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+
+            <div style="position: relative;">
+                <input type="text" id="searchUserInput" placeholder="타 유저 ID 검색" onkeyup="searchPublicUser()" 
+                       style="padding: 8px 15px; border-radius: 20px; border: 1px solid #ccc; width: 200px; outline: none;">
+                
+                <ul id="searchResultList" style="display: none; position: absolute; top: 40px; right: 0; background: #fff; 
+                           border: 1px solid #ccc; border-radius: 5px; list-style: none; padding: 0; width: 230px; 
+                           box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999; max-height: 200px; overflow-y: auto;">
+                </ul>
+            </div>
+        </div>
+    
         <div id='calendar'></div>
 
         <div class="filter-box">
@@ -43,9 +68,12 @@
             <input type="text" id="keyword" placeholder="메모 내용 검색" onkeyup="if(event.keyCode==13) applyFilters()">
             <button onclick="applyFilters()">검색</button>
             <button onclick="resetFilters()" style="background:#007BFF;">이번 달 전체보기</button>
-            <button onclick="openModal()" style="background:#28a745; color:white; margin-left:10px;">+ 내역 추가</button>
-            <button onclick="openCategoryManage()" style="background:#6c757d; color:white; margin-left:5px;">카테고리 관리</button>
             
+            <c:if test="${empty param.targetUserNum}">
+                <button onclick="openModal()" style="background:#28a745; color:white; margin-left:10px;">+ 내역 추가</button>
+                <button onclick="openCategoryManage()" style="background:#6c757d; color:white; margin-left:5px;">카테고리 관리</button>
+            </c:if>
+           
             <span id="dateLabel" style="margin-left:auto; font-weight:bold; color:#333;">이번 달 전체 내역</span>
         </div>
 
@@ -87,29 +115,32 @@
         <button onclick="closeModal()">취소</button>
     </div>
 
-	<div id="catManageModal" style="display:none; position:fixed; top:15%; left:50%; transform:translate(-50%, 0); background:#fff; padding:20px; border:1px solid #ccc; width:350px; box-shadow:0 5px 15px rgba(0,0,0,0.3); z-index:1001;">
-	    <h3>카테고리 관리</h3>
-	    <div style="margin-bottom:15px;">
-	        <label><input type="radio" name="mngCatType" value="I" onclick="loadManageCategories()"> 수입</label>
-	        <label><input type="radio" name="mngCatType" value="E" checked onclick="loadManageCategories()"> 지출</label>
-	    </div>
-	    
-	    <ul id="catManageList" style="list-style:none; padding:0; margin-bottom:15px; max-height:200px; overflow-y:auto;"></ul>
-	    
-	    <div style="display:flex; gap:5px;">
-	        <input type="text" id="newCatName" placeholder="새 카테고리명 (20자)" maxlength="20" style="flex:1;">
-	        <button onclick="saveCategoryManage('')" style="background:#28a745; color:white; border:none; padding:5px 10px; cursor:pointer;">추가</button>
-	    </div>
-	    
-	    <div style="text-align:right; margin-top:15px;">
-	        <button onclick="document.getElementById('catManageModal').style.display='none'" style="cursor:pointer; padding:5px 10px;">닫기</button>
-	    </div>
-	</div>
+    <div id="catManageModal" style="display:none; position:fixed; top:15%; left:50%; transform:translate(-50%, 0); background:#fff; padding:20px; border:1px solid #ccc; width:350px; box-shadow:0 5px 15px rgba(0,0,0,0.3); z-index:1001;">
+        <h3>카테고리 관리</h3>
+        <div style="margin-bottom:15px;">
+            <label><input type="radio" name="mngCatType" value="I" onclick="loadManageCategories()"> 수입</label>
+            <label><input type="radio" name="mngCatType" value="E" checked onclick="loadManageCategories()"> 지출</label>
+        </div>
+        
+        <ul id="catManageList" style="list-style:none; padding:0; margin-bottom:15px; max-height:200px; overflow-y:auto;"></ul>
+        
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="newCatName" placeholder="새 카테고리명 (20자)" maxlength="20" style="flex:1;">
+            <button onclick="saveCategoryManage('')" style="background:#28a745; color:white; border:none; padding:5px 10px; cursor:pointer;">추가</button>
+        </div>
+        
+        <div style="text-align:right; margin-top:15px;">
+            <button onclick="document.getElementById('catManageModal').style.display='none'" style="cursor:pointer; padding:5px 10px;">닫기</button>
+        </div>
+    </div>
 
     <script>
         let currentMonth = '';
         let selectedDate = '';
         let calendar;
+        
+        const targetUserQuery = '${param.targetUserNum}' ? '&targetUserNum=${param.targetUserNum}' : '';
+        const isReadOnly = '${param.targetUserNum}' !== '';
         
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
@@ -157,7 +188,7 @@
             const type = document.querySelector('input[name="transType"]:checked').value;
             const keyword = document.getElementById('keyword').value;
             
-            let url = '${pageContext.request.contextPath}/personal/getCalendarData.do?month=' + month + '&type=' + type + '&keyword=' + keyword;
+            let url = '${pageContext.request.contextPath}/personal/getCalendarData.do?month=' + month + '&type=' + type + '&keyword=' + keyword + targetUserQuery;
             
             fetch(url)
                 .then(res => res.json())
@@ -193,7 +224,8 @@
             const type = document.querySelector('input[name="transType"]:checked').value;
             const keyword = document.getElementById('keyword').value;
             
-            let url = '${pageContext.request.contextPath}/personal/getTransactionList.do?month=' + currentMonth + '&type=' + type + '&keyword=' + keyword;
+            let url = '${pageContext.request.contextPath}/personal/getTransactionList.do?month=' + currentMonth + '&type=' + type + '&keyword=' + keyword + targetUserQuery;
+            
             if (selectedDate !== '') {
                 url += '&date=' + selectedDate;
             }
@@ -212,7 +244,9 @@
                         let typeHtml = isIncome ? '<span style="color:#36A2EB;font-weight:bold;">수입</span>' : '<span style="color:#FF6384;font-weight:bold;">지출</span>';
                         let amountHtml = isIncome ? '+' + item.transAmount.toLocaleString() : '-' + item.transAmount.toLocaleString();
                         
-                        let tr = '<tr onclick="openModal(\'' + item.transNum + '\', \'' + item.transDate + '\', \'' + item.transType + '\', \'' + item.categoryNum + '\', \'' + item.transAmount + '\', \'' + (item.transMemo || '') + '\')" style="cursor:pointer;">' +
+                        let clickEvent = isReadOnly ? '' : 'onclick="openModal(\'' + item.transNum + '\', \'' + item.transDate + '\', \'' + item.transType + '\', \'' + item.categoryNum + '\', \'' + item.transAmount + '\', \'' + (item.transMemo || '') + '\')" style="cursor:pointer;"';
+                        
+                        let tr = '<tr ' + clickEvent + '>' +
                             '<td>' + item.transDate + '</td>' +
                             '<td>' + typeHtml + '</td>' +
                             '<td>' + item.categoryName + '</td>' +
@@ -261,7 +295,9 @@
         }
 
         function loadCategoryOptions(type, selectedCatNum) {
-            fetch('${pageContext.request.contextPath}/personal/getCategoryList.do?type=' + type)
+
+            fetch('${pageContext.request.contextPath}/personal/getCategoryList.do?type=' + type + targetUserQuery)
+
                 .then(res => res.json())
                 .then(data => {
                     const select = document.getElementById('modalCategory');
@@ -398,9 +434,47 @@
                     }
                 });
         }
-        
+
+        let searchTimeout;
+        function searchPublicUser() {
+            clearTimeout(searchTimeout);
+            const keyword = document.getElementById('searchUserInput').value.trim();
+            const resultUl = document.getElementById('searchResultList');
+            
+            if(!keyword) { resultUl.style.display = 'none'; return; }
+
+            searchTimeout = setTimeout(() => {
+                fetch('${pageContext.request.contextPath}/user/searchPublicUser.do?keyword=' + keyword)
+                    .then(res => res.json())
+                    .then(data => {
+                        resultUl.innerHTML = '';
+                        if(data.length === 0) {
+                            resultUl.innerHTML = '<li style="padding: 10px; color: #999; text-align: center;">검색 결과가 없습니다.</li>';
+                        } else {
+                            data.forEach(user => {
+                                const url = '${pageContext.request.contextPath}/personal/calendar.do?targetUserNum=' + user.userNum + '&targetNickname=' + encodeURIComponent(user.userNickname);
+                                resultUl.innerHTML += '<li style="padding: 10px; cursor: pointer; border-bottom: 1px solid #eee;" ' +
+                                                      'onmouseover="this.style.background=\'#f8f9fa\'" onmouseout="this.style.background=\'#fff\'" ' +
+                                                      'onclick="location.href=\'' + url + '\'">' + 
+                                                      '<b>' + user.userId + '</b> (' + user.userNickname + ')</li>';
+                            });
+                        }
+                        resultUl.style.display = 'block';
+                    });
+            }, 300);
+        }
+
+        document.addEventListener('click', function(e) {
+            if(e.target.id !== 'searchUserInput') {
+                const list = document.getElementById('searchResultList');
+                if(list) list.style.display = 'none';
+            }
+        });
+
         function togglePublicYn() {
             const btn = document.getElementById('btnPublicToggle');
+            if(!btn) return;
+
             const isCurrentlyPublic = btn.innerText.includes('공개 모드') && !btn.innerText.includes('비');
             const targetYn = isCurrentlyPublic ? 'N' : 'Y'; 
             
@@ -419,7 +493,6 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                	
                     if (data.currentYn === 'Y') {
                         btn.innerText = '공개 모드';
                         btn.style.backgroundColor = '#17a2b8';
