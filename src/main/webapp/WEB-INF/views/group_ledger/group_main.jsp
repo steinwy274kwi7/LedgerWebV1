@@ -14,9 +14,9 @@
 		    <button onclick="openMemberModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="멤버 목록">👥</button>
 		    
 		    <c:if test="${group.groupOwnerNum == loginUser.userNum}">
-		        <button onclick="openInviteModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="멤버 초대">➕</button>
-		        <button onclick="openSettingsModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="방 설정">⚙️</button>
-		    </c:if>
+  				<button id="inviteBtn" onclick="openInviteModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="멤버 초대">➕</button>
+    			<button id="settingBtn" onclick="openSettingsModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="방 설정">⚙️</button>
+			</c:if>
 		</div>
         <p id="displayGroupDesc" style="color: #666;">${group.groupDesc}</p>
 
@@ -200,7 +200,7 @@
         
      	// JSTL 값을 JS 변수로 가져오기 (권한 분기용)
         const currentUserNum = parseInt('${loginUser.userNum}');
-        const groupOwnerNum = parseInt('${group.groupOwnerNum}');
+		let groupOwnerNum = parseInt('${group.groupOwnerNum}');
         
         function openMemberModal() {
             document.getElementById('memberModal').style.display = 'block';
@@ -232,7 +232,8 @@
                     
                     let actionHtml = '';
                     if (currentUserNum === groupOwnerNum && m.userNum !== groupOwnerNum) {
-                        actionHtml = `<button onclick="kickMember(\${m.userNum})" style="background: none; border: 1px solid #dc3545; color: #dc3545; padding: 5px 10px; border-radius: 3px; cursor: pointer;">강퇴</button>`;
+                        actionHtml = `<button onclick="transferOwner(\${m.userNum}, '\${m.userNickname}')" style="background: none; border: 1px solid #007BFF; color: #007BFF; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-right: 5px;">👑 위임</button>`
+                                   + `<button onclick="kickMember(\${m.userNum})" style="background: none; border: 1px solid #dc3545; color: #dc3545; padding: 5px 10px; border-radius: 3px; cursor: pointer;">강퇴</button>`;
                     }
                     
                     li.innerHTML = nameHtml + actionHtml;
@@ -300,6 +301,40 @@
             .catch(err => console.error('탈퇴 실패:', err));
         }
         
+     // 🌟 방장 수동 위임 처리 (새로고침 없는 실시간 버전)
+        function transferOwner(targetUserNum, targetNickname) {
+            if (!confirm(targetNickname + " 님에게 방장 권한을 넘겨주시겠습니까?\n(위임 즉시 본인은 일반 멤버로 전환되며, 더 이상 방 설정 및 강퇴가 불가능합니다.)")) {
+                return;
+            }
+            
+            const groupNum = document.getElementById('settingGroupNum').value;
+            const params = new URLSearchParams({ groupNum: groupNum, targetUserNum: targetUserNum });
+
+            fetch('${pageContext.request.contextPath}/group/transferOwner.do', {
+                method: 'POST',
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    
+                    // 1. 자바스크립트가 알고 있는 방장 번호를 새로운 방장으로 업데이트
+                    groupOwnerNum = targetUserNum; 
+                    
+                    // 2. 헤더에 있던 방장 전용 버튼(초대, 설정)을 DOM에서 숨김 처리
+                    document.getElementById('inviteBtn').style.display = 'none';
+                    document.getElementById('settingBtn').style.display = 'none';
+                    
+                    // 3. 모달창 리스트 다시 그리기 (새로고침 없이 갱신됨)
+                    loadMemberList(); 
+                } else {
+                    alert("오류: " + data.message);
+                }
+            })
+            .catch(err => console.error('위임 실패:', err));
+        }
+     
     </script>
 </body>
 </html>

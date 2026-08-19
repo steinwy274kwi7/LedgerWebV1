@@ -31,6 +31,7 @@ public class GroupManageAction implements Action {
             case "getMemberList"  -> getMemberList(request, response);
             case "kickMember"     -> kickMember(request, response);
             case "leaveGroup"     -> leaveGroup(request, response);
+            case "transferOwner"  -> transferOwner(request, response);
             default -> throw new IllegalArgumentException("GroupManageAction에 없는 기능: " + command);
         };
     }
@@ -327,4 +328,29 @@ public class GroupManageAction implements Action {
         return null;
     }
     
+    // 방장 수동 위임 (AJAX)
+    private String transferOwner(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        if (loginUser == null) {
+            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
+            return null;
+        }
+        
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            int targetUserNum = Integer.parseInt(request.getParameter("targetUserNum"));
+            
+            GroupManageService.getInstance().transferOwner(groupNum, targetUserNum, loginUser.getUserNum());
+            
+            out.print("{\"success\": true, \"message\": \"방장 권한이 성공적으로 위임되었습니다.\"}");
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally { 
+            out.flush(); 
+        }
+        return null;
+    }
 }

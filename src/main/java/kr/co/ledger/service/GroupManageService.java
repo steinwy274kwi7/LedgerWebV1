@@ -155,4 +155,25 @@ public class GroupManageService {
 	        dao.withdrawGroupMember(groupNum, requestUserNum);
 	    }
 	}
+	// 방장 수동 위임 처리
+	public void transferOwner(int groupNum, int targetUserNum, int requestUserNum) throws Exception {
+	    GroupDAO dao = GroupDAO.getInstance();
+	    GroupDTO group = dao.getGroupInfo(groupNum);
+	    
+	    // 1. 요청한 사람이 방장인지 확인
+	    if (group.getGroupOwnerNum() != requestUserNum) {
+	        throw new IllegalAccessException("방장만 권한을 위임할 수 있습니다.");
+	    }
+	    // 2. 자기 자신에게 위임하려는 건 아닌지 확인
+	    if (requestUserNum == targetUserNum) {
+	        throw new IllegalArgumentException("본인에게 위임할 수 없습니다.");
+	    }
+	    // 3. 위임받을 대상이 현재 정상적인 멤버인지 확인
+	    if (!dao.isUserAlreadyInGroupOrInvited(groupNum, targetUserNum, "checkAlreadyMember")) {
+	        throw new IllegalArgumentException("현재 참여 중인 멤버에게만 위임할 수 있습니다.");
+	    }
+	    
+	    // 모든 검증 통과 -> 방장 권한 위임 업데이트 (이전에 만든 updateGroupOwner 재활용)
+	    dao.updateGroupOwner(groupNum, targetUserNum);
+	}
 }
