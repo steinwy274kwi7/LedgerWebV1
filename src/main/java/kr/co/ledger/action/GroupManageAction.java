@@ -24,6 +24,7 @@ public class GroupManageAction implements Action {
             case "list" 		  -> getMyGroupList(request, response);
             case "createForm" 	  -> createForm(request, response);
             case "create"         -> createGroup(request, response);
+            case "updateSettings" -> updateGroupSettings(request, response);
             default -> throw new IllegalArgumentException("GroupManageAction에 없는 기능: " + command);
         };
     }
@@ -146,4 +147,39 @@ public class GroupManageAction implements Action {
         }
     }
     
+    // 그룹 설정 업데이트
+    private String updateGroupSettings(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+       
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        if (loginUser == null) {
+            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
+            return null;
+        }
+
+        try {
+            GroupDTO dto = new GroupDTO();
+            dto.setGroupNum(Integer.parseInt(request.getParameter("groupNum")));
+            dto.setGroupName(request.getParameter("groupName").trim());
+            dto.setGroupDesc(request.getParameter("groupDesc"));
+            dto.setGroupOpenYn(request.getParameter("groupOpenYn"));
+            dto.setGroupOwnerNum(loginUser.getUserNum());
+
+            if (dto.getGroupName().isEmpty() || dto.getGroupName().length() > 20) {
+                throw new IllegalArgumentException("방 이름은 1~20자 사이여야 합니다.");
+            }
+
+            GroupManageService.getInstance().updateGroupSettings(dto);
+            out.print("{\"success\": true, \"message\": \"설정이 성공적으로 변경되었습니다.\"}");
+            
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally {
+            out.flush();
+        }
+        
+        return null;
+    }
 }

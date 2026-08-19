@@ -48,4 +48,22 @@
 	    ]]>
 	</entry>
 	
+	<!-- 그룹 설정 업데이트 (방장 본인만 가능하도록 조건 추가) -->
+	<entry key="updateGroupSettings">
+	    <![CDATA[
+	    UPDATE GROUPS 
+	    SET GROUP_NAME = ?, 
+	        GROUP_DESC = ?, 
+	        GROUP_OPEN_YN = ?
+	    WHERE GROUP_NUM = ? AND GROUP_OWNER_NUM = ?
+	    ]]>
+	</entry>
+
+	<!-- 특정 그룹 정보 하나만 가져오기 -->
+	<entry key="getGroupInfo">
+	    <![CDATA[
+	    SELECT * FROM GROUPS WHERE GROUP_NUM = ?
+	    ]]>
+	</entry>
+	
 </properties>

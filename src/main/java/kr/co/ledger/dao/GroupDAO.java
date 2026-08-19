@@ -104,4 +104,44 @@ public class GroupDAO {
         }
     }
     
+    // 그룹 설정 업데이트
+    public boolean updateGroupSettings(GroupDTO dto) throws Exception {
+        String sql = SqlManager.getSql("updateGroupSettings");
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             
+            pstmt.setString(1, dto.getGroupName());
+            pstmt.setString(2, dto.getGroupDesc());
+            pstmt.setString(3, dto.getGroupOpenYn());
+            pstmt.setInt(4, dto.getGroupNum());
+            pstmt.setInt(5, dto.getGroupOwnerNum());
+            
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+    
+    // 특정 그룹정보 하나만 가져오기
+    public GroupDTO getGroupInfo(int groupNum) throws Exception {
+        String sql = SqlManager.getSql("getGroupInfo");
+        GroupDTO dto = null;
+        
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, groupNum);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    dto = new GroupDTO();
+                    dto.setGroupNum(rs.getInt("GROUP_NUM"));
+                    dto.setGroupName(rs.getString("GROUP_NAME"));
+                    dto.setGroupDesc(rs.getString("GROUP_DESC"));
+                    dto.setGroupType(rs.getString("GROUP_TYPE"));
+                    dto.setGroupOwnerNum(rs.getInt("GROUP_OWNER_NUM"));
+                    dto.setGroupOpenYn(rs.getString("GROUP_OPEN_YN"));
+                    dto.setCreatedAt(rs.getString("CREATED_AT"));
+                }
+            }
+        }
+        return dto;
+    }
 }

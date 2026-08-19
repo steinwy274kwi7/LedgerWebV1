@@ -7,9 +7,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.GroupDTO;
 import kr.co.ledger.dto.TrendDTO;
 import kr.co.ledger.dto.UserDTO;
 import kr.co.ledger.service.GroupLedgerService;
+import kr.co.ledger.service.GroupManageService;
 import kr.co.ledger.util.UriUtil;
 
 public class GroupLedgerAction implements Action {
@@ -24,6 +26,7 @@ public class GroupLedgerAction implements Action {
 
             case "getCategoryChartData" -> getCategoryChartData(request, response);
             case "getTrendData" 		-> getTrendData(request, response);
+            case "ledger" 				-> getGroupLedgerMain(request, response);
             default -> throw new IllegalArgumentException("GroupLedgerAction에 없는 기능: " + command);
         };
     }
@@ -103,4 +106,25 @@ public class GroupLedgerAction implements Action {
         
         return null;
     }
+    
+    private String getGroupLedgerMain(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        if (loginUser == null) {
+            return "redirect:" + request.getContextPath() + "/user/loginForm.do";
+        }
+
+        String groupNumStr = request.getParameter("groupNum");
+        if (groupNumStr == null || groupNumStr.isEmpty()) {
+            return "redirect:" + request.getContextPath() + "/group/list.do";
+        }
+
+        int groupNum = Integer.parseInt(groupNumStr);
+
+        GroupDTO group = GroupManageService.getInstance().getGroupInfo(groupNum);
+        
+        request.setAttribute("group", group);
+        
+        return "/views/group_ledger/group_main.jsp";
+    }
+    
 }

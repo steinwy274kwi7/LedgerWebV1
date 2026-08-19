@@ -53,4 +53,19 @@ public class GroupManageService {
 	    
 	    GroupDAO.getInstance().createGroup(dto);
 	}
+	
+	// 그룹 설정 업데이트
+	public void updateGroupSettings(GroupDTO dto) throws Exception {
+	    boolean isSuccess = kr.co.ledger.dao.GroupDAO.getInstance().updateGroupSettings(dto);
+	    
+	    if (!isSuccess) {
+	        throw new IllegalAccessException("설정을 변경할 권한이 없거나 존재하지 않는 방입니다.");
+	    }
+	}
+	
+	// 특정 그룹정보 하나만 가져오기
+	public GroupDTO getGroupInfo(int groupNum) throws Exception {
+	    return GroupDAO.getInstance().getGroupInfo(groupNum);
+	}
+	
 }
