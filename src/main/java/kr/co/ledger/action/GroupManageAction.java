@@ -32,6 +32,7 @@ public class GroupManageAction implements Action {
             case "kickMember"     -> kickMember(request, response);
             case "leaveGroup"     -> leaveGroup(request, response);
             case "transferOwner"  -> transferOwner(request, response);
+            case "searchPublic"   -> searchPublicGroups(request, response);
             default -> throw new IllegalArgumentException("GroupManageAction에 없는 기능: " + command);
         };
     }
@@ -353,4 +354,30 @@ public class GroupManageAction implements Action {
         }
         return null;
     }
+    
+    // 공개 방 검색 (AJAX)
+    private String searchPublicGroups(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        try {
+            String keyword = request.getParameter("keyword");
+            List<GroupDTO> list = GroupManageService.getInstance().searchPublicGroups(keyword);
+
+            StringBuilder json = new StringBuilder("[");
+            for (int i = 0; i < list.size(); i++) {
+                GroupDTO g = list.get(i);
+                json.append(String.format("{\"groupNum\":%d, \"groupName\":\"%s\", \"groupDesc\":\"%s\"}", 
+                            g.getGroupNum(), g.getGroupName(), g.getGroupDesc()));
+                if (i < list.size() - 1) json.append(",");
+            }
+            json.append("]");
+            out.print(json.toString());
+        } catch (Exception e) {
+            out.print("[]");
+        } finally {
+            out.flush();
+        }
+        return null;
+    }
+    
 }

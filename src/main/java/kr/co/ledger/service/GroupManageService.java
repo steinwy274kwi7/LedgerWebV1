@@ -1,5 +1,6 @@
 package kr.co.ledger.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import kr.co.ledger.dao.GroupDAO;
@@ -175,5 +176,13 @@ public class GroupManageService {
 	    
 	    // 모든 검증 통과 -> 방장 권한 위임 업데이트 (이전에 만든 updateGroupOwner 재활용)
 	    dao.updateGroupOwner(groupNum, targetUserNum);
+	}
+	
+	// 공개 그룹 검색 처리
+	public List<GroupDTO> searchPublicGroups(String keyword) throws Exception {
+	    if (keyword == null || keyword.trim().isEmpty()) {
+	        return new ArrayList<>(); // 검색어가 없으면 빈 리스트 반환
+	    }
+	    return GroupDAO.getInstance().searchPublicGroups(keyword.trim());
 	}
 }

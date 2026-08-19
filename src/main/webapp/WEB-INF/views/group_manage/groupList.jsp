@@ -9,6 +9,8 @@
         .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .header-area h2 { margin: 0; color: #333; }
         .btn-create { background: #007BFF; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; text-decoration: none; }
+        .btn-search { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; text-decoration: none; }
+        .btn-search:hover { background: #218838; }
         
         .group-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .group-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 20px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; position: relative; }
@@ -41,6 +43,11 @@
         <div class="header-area">
 		    <h2>나의 공동 가계부</h2>
 		    <div style="display: flex; gap: 10px;">
+                
+                <button class="btn-search" onclick="openSearchModal()">
+                    공개 가계부 구경하기
+                </button>
+
 		        <a href="${pageContext.request.contextPath}/group/statistics.do" class="btn-stats">
 		            공동 가계부 통계
 		        </a>
@@ -80,5 +87,56 @@
             </c:choose>
         </div>
     </div>
+
+    <div id="searchModal" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 400px; z-index:1000;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+            <h3 style="margin:0;">공개 가계부 검색</h3>
+            <button onclick="closeSearchModal()" style="background:none; border:none; cursor:pointer; font-weight:bold; font-size:1.1em;">X</button>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom: 15px;">
+            <input type="text" id="searchKeyword" placeholder="방 이름 검색" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            <button onclick="searchGroups()" style="padding:8px 15px; background:#007BFF; color:white; border:none; border-radius:4px; cursor:pointer;">검색</button>
+        </div>
+        <ul id="searchResultArea" style="list-style:none; padding:0; margin:0; max-height:300px; overflow-y:auto;">
+        </ul>
+    </div>
+
+    <script>
+    function openSearchModal() { document.getElementById('searchModal').style.display = 'block'; }
+    function closeSearchModal() { document.getElementById('searchModal').style.display = 'none'; }
+
+    function searchGroups() {
+        const keyword = document.getElementById('searchKeyword').value;
+        if (!keyword) return;
+
+        fetch('${pageContext.request.contextPath}/group/searchPublic.do?keyword=' + encodeURIComponent(keyword))
+        .then(res => res.json())
+        .then(data => {
+            const resultArea = document.getElementById('searchResultArea');
+            resultArea.innerHTML = '';
+            if(data.length === 0) {
+                resultArea.innerHTML = '<li style="text-align:center; padding:10px; color:#888;">검색 결과가 없습니다.</li>';
+                return;
+            }
+            data.forEach(g => {
+                let li = document.createElement('li');
+                li.style.cssText = "padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;";
+                
+                // 설명이 null일 경우 예외 처리
+                let desc = (g.groupDesc === 'null' || !g.groupDesc) ? '설명이 없습니다.' : g.groupDesc;
+
+                li.innerHTML = `
+                    <div style="width:70%;">
+                        <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${g.groupName}</strong>
+                        <span style="font-size:0.8em; color:#666; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${desc}</span>
+                    </div>
+                    <a href="${pageContext.request.contextPath}/group/ledger.do?groupNum=\${g.groupNum}" style="padding:5px 10px; background:#17a2b8; color:white; text-decoration:none; border-radius:3px; font-size:0.9em; white-space:nowrap;">구경하기</a>
+                `;
+                resultArea.appendChild(li);
+            });
+        })
+        .catch(err => console.error('검색 실패:', err));
+    }
+    </script>
 </body>
 </html>

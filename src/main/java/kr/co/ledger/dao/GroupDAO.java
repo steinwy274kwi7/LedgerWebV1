@@ -255,4 +255,23 @@ public class GroupDAO {
         }
     }
     
+    // 공개 그룹 검색
+    public List<GroupDTO> searchPublicGroups(String keyword) throws Exception {
+        List<GroupDTO> list = new ArrayList<>();
+        String sql = SqlManager.getSql("searchPublicGroups");
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, keyword);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    GroupDTO group = new GroupDTO();
+                    group.setGroupNum(rs.getInt("GROUP_NUM"));
+                    group.setGroupName(rs.getString("GROUP_NAME"));
+                    group.setGroupDesc(rs.getString("GROUP_DESC"));
+                    list.add(group);
+                }
+            }
+        }
+        return list;
+    }
+    
 }

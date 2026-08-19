@@ -5,7 +5,7 @@ import java.time.YearMonth;
 import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
+import kr.co.ledger.dao.GroupDAO;
 import kr.co.ledger.dto.ChartDTO;
 import kr.co.ledger.dto.GroupDTO;
 import kr.co.ledger.dto.TrendDTO;
@@ -108,6 +108,7 @@ public class GroupLedgerAction implements Action {
     }
     
     private String getGroupLedgerMain(HttpServletRequest request, HttpServletResponse response) throws Exception {
+
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
         if (loginUser == null) {
             return "redirect:" + request.getContextPath() + "/user/loginForm.do";
@@ -122,6 +123,27 @@ public class GroupLedgerAction implements Action {
 
         GroupDTO group = GroupManageService.getInstance().getGroupInfo(groupNum);
         
+        GroupDAO dao = GroupDAO.getInstance();
+        
+        boolean isMember = dao.isUserAlreadyInGroupOrInvited(groupNum, loginUser.getUserNum(), "checkAlreadyMember");
+        
+        // 멤버가 아닌데 비공개 방(N)에 접근하려 하면 차단
+        if (!isMember && "N".equals(group.getGroupOpenYn())) {
+        	
+            response.setContentType("text/html; charset=UTF-8");
+            PrintWriter out = response.getWriter();
+            out.println("<script>");
+            out.println("alert('비공개 그룹이거나 접근 권한이 없습니다.');");
+            out.println("location.href='" + request.getContextPath() + "/group/list.do';");
+            out.println("</script>");
+            out.flush();
+            return null;
+        }
+        
+        // JSP에서 버튼들을 숨기기 위해 멤버 여부(isMember) 전달
+        request.setAttribute("isMember", isMember);
+        
+        // 4. 그룹 정보 전달 및 화면 이동
         request.setAttribute("group", group);
         
         return "/views/group_ledger/group_main.jsp";

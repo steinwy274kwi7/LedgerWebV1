@@ -87,10 +87,12 @@
             <!-- JS로 동적 생성됨 -->
         </ul>
         
-        <!-- 자진 탈퇴 버튼 -->
-        <div style="margin-top: 20px; text-align: center;">
-        	<button onclick="leaveGroup()" style="width: 100%; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🚪 이 방 나가기</button>
-        </div>
+        <!-- 자진 탈퇴 버튼 (관전자에게는 숨김 처리) -->
+        <c:if test="${isMember}">
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="leaveGroup()" style="width: 100%; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🚪 이 방 나가기</button>
+            </div>
+        </c:if>
     </div>
     
     <script>
@@ -201,7 +203,8 @@
      	// JSTL 값을 JS 변수로 가져오기 (권한 분기용)
         const currentUserNum = parseInt('${loginUser.userNum}');
 		let groupOwnerNum = parseInt('${group.groupOwnerNum}');
-        
+		const isMember = ${isMember};
+		
         function openMemberModal() {
             document.getElementById('memberModal').style.display = 'block';
             loadMemberList();

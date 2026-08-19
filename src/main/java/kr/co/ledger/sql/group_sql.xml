@@ -156,4 +156,15 @@
 	    ]]>
 	</entry>
 
+	<!-- 공개된 타 그룹 검색 (방 이름 기준) -->
+	<entry key="searchPublicGroups">
+	    <![CDATA[
+	    SELECT GROUP_NUM, GROUP_NAME, GROUP_DESC 
+	    FROM GROUPS 
+	    WHERE GROUP_OPEN_YN = 'Y' AND USE_YN = 'Y' 
+	      AND GROUP_NAME LIKE '%' || ? || '%'
+	    ORDER BY GROUP_NUM DESC
+	    ]]>
+	</entry>
+
 </properties>
