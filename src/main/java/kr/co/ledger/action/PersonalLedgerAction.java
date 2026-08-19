@@ -1,6 +1,7 @@
 package kr.co.ledger.action;
 
 import java.io.PrintWriter;
+import java.time.YearMonth;
 import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -44,7 +45,9 @@ public class PersonalLedgerAction implements Action {
         if(transType == null) transType = "E";
         
         String targetMonth = request.getParameter("month");
-        if(targetMonth == null) targetMonth = "2026-08";
+        if(targetMonth == null || targetMonth.isEmpty()) {
+            targetMonth = YearMonth.now().toString();
+        }
         
         List<ChartDTO> chartList = PersonalLedgerService.getInstance().getCategorySumForChart(myUserNum, transType, targetMonth);
         
@@ -79,7 +82,10 @@ public class PersonalLedgerAction implements Action {
 
         int myUserNum = loginUser.getUserNum();
         String targetMonth = request.getParameter("month");
-        if (targetMonth == null) targetMonth = "2026-08"; 
+        
+        if(targetMonth == null || targetMonth.isEmpty()) {
+            targetMonth = YearMonth.now().toString();
+        }
 
         RatioDTO ratioData = PersonalLedgerService.getInstance().calculateMonthlyRatio(myUserNum, targetMonth);
 
@@ -107,7 +113,10 @@ public class PersonalLedgerAction implements Action {
 
         int myUserNum = loginUser.getUserNum();
         String targetMonth = request.getParameter("month");
-        if (targetMonth == null) targetMonth = "2026-08"; 
+        
+        if(targetMonth == null || targetMonth.isEmpty()) {
+            targetMonth = YearMonth.now().toString();
+        }
 
         List<TrendDTO> trendList = PersonalLedgerService.getInstance().getRecent6MonthsTrend(myUserNum, targetMonth);
 

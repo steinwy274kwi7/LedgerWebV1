@@ -1,4 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,8 +17,10 @@
 </head>
 <body>
 
+    <jsp:useBean id="now" class="java.util.Date" />
+
     <div class="ratio-container" style="text-align: center;">
-        <h3 style="margin-top: 0;">이번 달 그룹 카테고리별 지출 비율</h3>
+        <h3 style="margin-top: 0;"><fmt:formatDate value="${now}" pattern="yyyy년 M월" /> 그룹 카테고리별 지출 비율</h3>
         <button onclick="loadAllGroupsPieChart()" style="padding: 10px; margin-bottom: 20px; cursor: pointer;">
             이번 달 전체 그룹 통계 새로고침
         </button>

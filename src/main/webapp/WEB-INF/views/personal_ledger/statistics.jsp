@@ -1,4 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -25,10 +27,12 @@
 </head>
 <body>
 
-    <h2 style="text-align: center;">2026년 8월 흑자/적자 분석</h2>
+    <jsp:useBean id="now" class="java.util.Date" />
+
+    <h2 style="text-align: center;"><fmt:formatDate value="${now}" pattern="yyyy년 M월" /> 흑자/적자 분석</h2>
     
     <div style="text-align: center;">
-        <button onclick="loadRatioData('2026-08'); loadTrendData('2026-08');" style="padding: 10px; cursor: pointer;">
+        <button onclick="loadRatioData(''); loadTrendData('');" style="padding: 10px; cursor: pointer;">
             통계 데이터 모두 불러오기
         </button>
     </div>
@@ -52,7 +56,7 @@
 	</div>
 	
     <script>
-        function loadRatioData(month) {
+        function loadRatioData(month = '') {
             fetch('${pageContext.request.contextPath}/personal/getRatioData.do?month=' + month)
                 .then(response => {
                     if (!response.ok) throw new Error('서버 통신 에러');
@@ -91,7 +95,7 @@
         
         let trendChartInstance = null;
 
-        function loadTrendData(month) {
+        function loadTrendData(month = '') {
             fetch('${pageContext.request.contextPath}/personal/getTrendData.do?month=' + month)
                 .then(response => {
                     if (!response.ok) throw new Error('서버 통신 에러');
@@ -159,6 +163,11 @@
                     alert('추이 데이터를 불러오지 못했습니다.');
                 });
         }
+        
+        window.onload = function() {
+            loadRatioData();
+            loadTrendData();
+        };
         
     </script>
 </body>

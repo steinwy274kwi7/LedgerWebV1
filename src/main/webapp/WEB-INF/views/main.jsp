@@ -1,5 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="kr.co.ledger.dto.UserDTO" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%
     UserDTO loginUser = (UserDTO) session.getAttribute("loginUser");
 
@@ -42,6 +44,8 @@
     </style>
 </head>
 <body>
+    <jsp:useBean id="now" class="java.util.Date" />
+
     <h1>환영합니다, ${sessionScope.loginUser.userId}님!</h1>
     
     <a href="${pageContext.request.contextPath}/user/myPage.do">마이페이지</a><br>
@@ -63,11 +67,11 @@
     
     <br><hr><br>
     
-    <h2 style="text-align: center;">2026년 8월 내역 비율</h2>
+    <h2 style="text-align: center;"><fmt:formatDate value="${now}" pattern="yyyy년 M월" /> 내역 비율</h2>
     
     <div style="text-align: center;">
-        <button onclick="loadChartData('E', '2026-08')">지출 차트 보기</button>
-        <button onclick="loadChartData('I', '2026-08')">수입 차트 보기</button>
+        <button onclick="loadChartData('E')">지출 차트 보기</button>
+        <button onclick="loadChartData('I')">수입 차트 보기</button>
     </div>
 
     <div class="chart-container">
@@ -158,7 +162,7 @@
         
         let myChartInstance = null; 
 
-        function loadChartData(type, month) {
+        function loadChartData(type, month = '') {
             
             fetch('${pageContext.request.contextPath}/personal/getChartData.do?type=' + type + '&month=' + month)
                 .then(response => {
@@ -207,6 +211,10 @@
                     alert('차트 데이터를 불러오는 데 실패했습니다.');
                 });
         }
+
+        window.onload = function() {
+            loadChartData('E'); 
+        };
     </script>
 
 </body>
