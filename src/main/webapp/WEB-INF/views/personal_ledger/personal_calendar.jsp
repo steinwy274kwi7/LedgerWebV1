@@ -33,6 +33,7 @@
             <button onclick="applyFilters()">검색</button>
             <button onclick="resetFilters()" style="background:#007BFF;">이번 달 전체보기</button>
             <button onclick="openModal()" style="background:#28a745; color:white; margin-left:10px;">+ 내역 추가</button>
+            <button onclick="openCategoryManage()" style="background:#6c757d; color:white; margin-left:5px;">카테고리 관리</button>
             
             <span id="dateLabel" style="margin-left:auto; font-weight:bold; color:#333;">이번 달 전체 내역</span>
         </div>
@@ -74,6 +75,25 @@
         <button id="btnDelete" onclick="deleteTransaction()" style="background:#dc3545; color:white; display:none;">삭제</button>
         <button onclick="closeModal()">취소</button>
     </div>
+
+	<div id="catManageModal" style="display:none; position:fixed; top:15%; left:50%; transform:translate(-50%, 0); background:#fff; padding:20px; border:1px solid #ccc; width:350px; box-shadow:0 5px 15px rgba(0,0,0,0.3); z-index:1001;">
+	    <h3>카테고리 관리</h3>
+	    <div style="margin-bottom:15px;">
+	        <label><input type="radio" name="mngCatType" value="I" onclick="loadManageCategories()"> 수입</label>
+	        <label><input type="radio" name="mngCatType" value="E" checked onclick="loadManageCategories()"> 지출</label>
+	    </div>
+	    
+	    <ul id="catManageList" style="list-style:none; padding:0; margin-bottom:15px; max-height:200px; overflow-y:auto;"></ul>
+	    
+	    <div style="display:flex; gap:5px;">
+	        <input type="text" id="newCatName" placeholder="새 카테고리명 (20자)" maxlength="20" style="flex:1;">
+	        <button onclick="saveCategoryManage('')" style="background:#28a745; color:white; border:none; padding:5px 10px; cursor:pointer;">추가</button>
+	    </div>
+	    
+	    <div style="text-align:right; margin-top:15px;">
+	        <button onclick="document.getElementById('catManageModal').style.display='none'" style="cursor:pointer; padding:5px 10px;">닫기</button>
+	    </div>
+	</div>
 
     <script>
         let currentMonth = '';
@@ -204,20 +224,44 @@
             applyFilters();
         }
         
-        function openModal(num = '', date = '', type = 'E', cat = '', amt = '', memo = '') {
+        function openModal(num = '', date = '', type = '', cat = '', amt = '', memo = '') {
+            if (!type) {
+                const mainType = document.querySelector('input[name="transType"]:checked').value;
+                type = (mainType === 'ALL') ? 'E' : mainType;
+            }
+
             document.getElementById('modalTransNum').value = num;
             document.getElementById('modalDate').value = date || new Date().toISOString().split('T')[0];
-            document.querySelector('input[name="modalType"][value="' + type + '"]').checked = true;
-            document.getElementById('modalCategory').value = cat;
+            
+            const typeRadios = document.querySelectorAll('input[name="modalType"]');
+            typeRadios.forEach(radio => {
+                if(radio.value === type) radio.checked = true;
+                radio.onclick = function() { loadCategoryOptions(this.value, ''); };
+            });
+
             document.getElementById('modalAmount').value = amt;
             document.getElementById('modalMemo').value = memo;
             document.getElementById('modalTitle').innerText = num === '' ? '내역 등록' : '내역 수정';
-            
             document.getElementById('btnDelete').style.display = num === '' ? 'none' : 'inline-block';
-           
+            
+            loadCategoryOptions(type, cat);
+            
             document.getElementById('txModal').style.display = 'block';
         }
 
+        function loadCategoryOptions(type, selectedCatNum) {
+            fetch('${pageContext.request.contextPath}/personal/getCategoryList.do?type=' + type)
+                .then(res => res.json())
+                .then(data => {
+                    const select = document.getElementById('modalCategory');
+                    select.innerHTML = '<option value="">카테고리 선택</option>';
+                    data.forEach(item => {
+                        select.innerHTML += '<option value="' + item.categoryNum + '">' + item.categoryName + '</option>';
+                    });
+                    if(selectedCatNum) select.value = selectedCatNum;
+                });
+        }
+        
         function closeModal() { document.getElementById('txModal').style.display = 'none'; }
 
         function saveTransaction() {
@@ -270,6 +314,78 @@
                     }
                 })
                 .catch(err => console.error('삭제 요청 실패:', err));
+        }
+
+        function openCategoryManage() {
+            document.getElementById('catManageModal').style.display = 'block';
+            loadManageCategories();
+        }
+
+        function loadManageCategories() {
+            const type = document.querySelector('input[name="mngCatType"]:checked').value;
+            fetch('${pageContext.request.contextPath}/personal/getCategoryList.do?type=' + type)
+                .then(res => res.json())
+                .then(data => {
+                    const listUl = document.getElementById('catManageList');
+                    listUl.innerHTML = '';
+                    data.forEach(item => {
+                        let btnHtml = '';
+                        if(item.categoryName !== '미분류') {
+                            btnHtml = '<button onclick="saveCategoryManage(\'' + item.categoryNum + '\')" style="font-size:12px; cursor:pointer;">수정</button> ' +
+                                      '<button onclick="deleteCategoryManage(\'' + item.categoryNum + '\')" style="font-size:12px; cursor:pointer; color:red;">삭제</button>';
+                        } else {
+                            btnHtml = '<span style="font-size:12px; color:#888;">기본</span>';
+                        }
+                        listUl.innerHTML += '<li style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid #eee; padding-bottom:5px;">' + 
+                                            '<span>' + item.categoryName + '</span>' +
+                                            '<div>' + btnHtml + '</div></li>';
+                    });
+                });
+        }
+
+        function saveCategoryManage(catNum) {
+            let name = '';
+            if(catNum === '') {
+                name = document.getElementById('newCatName').value.trim();
+            } else {
+                name = prompt("변경할 카테고리명을 입력하세요 (최대 20자)");
+                if(name === null) return;
+                name = name.trim();
+            }
+            
+            const type = document.querySelector('input[name="mngCatType"]:checked').value;
+            
+            if(!name) { alert("카테고리명을 입력하세요."); return; }
+            if(name === "미분류") { alert("'미분류'는 시스템 예약어입니다."); return; }
+            if(name.length > 20) { alert("카테고리명은 20자를 넘을 수 없습니다."); return; }
+            
+            const params = new URLSearchParams({ categoryNum: catNum, categoryName: name, categoryType: type });
+            
+            fetch('${pageContext.request.contextPath}/personal/saveCategory.do', { method:'POST', body:params })
+                .then(res=>res.json()).then(data => {
+                    if(data.success) {
+                        document.getElementById('newCatName').value = '';
+                        loadManageCategories(); 
+                    } else alert(data.message);
+                });
+        }
+
+        function deleteCategoryManage(catNum) {
+            if(!confirm('삭제 시 해당 내역들은 [미분류]로 이동됩니다. 삭제하시겠습니까?')) return;
+            
+            const type = document.querySelector('input[name="mngCatType"]:checked').value;
+            
+            fetch('${pageContext.request.contextPath}/personal/deleteCategory.do?categoryNum=' + catNum + '&categoryType=' + type)
+                .then(res => res.json())
+                .then(data => {
+                    if(data.success) {
+                        alert("삭제 및 내역 이관이 완료되었습니다.");
+                        loadManageCategories();
+                        applyFilters(); 
+                    } else {
+                        alert("삭제 실패: " + data.message);
+                    }
+                });
         }
     </script>
 </body>

@@ -1,9 +1,12 @@
 package kr.co.ledger.service;
 
 import java.util.List;
+
+import kr.co.ledger.dao.PersonalCategoryDAO;
 import kr.co.ledger.dao.PersonalTransactionDAO;
 import kr.co.ledger.dto.CalendarDTO;
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.PersonalCategoryDTO;
 import kr.co.ledger.dto.PersonalTransactionDTO;
 import kr.co.ledger.dto.RatioDTO;
 import kr.co.ledger.dto.TrendDTO;
@@ -77,6 +80,40 @@ public class PersonalLedgerService {
     // 개인 수입지출 삭제
     public void deleteTransaction(int transNum, int userNum) throws Exception {
         PersonalTransactionDAO.getInstance().deleteTransaction(transNum, userNum);
+    }
+    
+    // 카테고리 목록 조회
+    public List<PersonalCategoryDTO> getCategoryList(int userNum, String type) throws Exception {
+        return PersonalCategoryDAO.getInstance().getCategoryList(userNum, type);
+    }
+
+    // 카테고리 등록 수정
+    public void saveCategory(PersonalCategoryDTO dto) throws Exception {
+        if (dto.getCategoryNum() == 0) {
+            PersonalCategoryDAO.getInstance().insertCategory(dto);
+        } else {
+            PersonalCategoryDAO.getInstance().updateCategory(dto);
+        }
+    }
+
+    // 카테고리 삭제
+    public void deleteCategory(int categoryNum, int userNum, String type) throws Exception {
+        PersonalCategoryDAO dao = PersonalCategoryDAO.getInstance();
+        
+        Integer unclassifiedNum = dao.getCategoryByName(userNum, "미분류", type);
+        
+        if (unclassifiedNum == null) {
+            PersonalCategoryDTO newCat = new PersonalCategoryDTO();
+            newCat.setUserNum(userNum);
+            newCat.setCategoryName("미분류");
+            newCat.setCategoryType(type);
+            dao.insertCategory(newCat);
+            
+            unclassifiedNum = dao.getCategoryByName(userNum, "미분류", type);
+        }
+        
+        dao.moveTransactionsCategory(userNum, categoryNum, unclassifiedNum);
+        dao.deleteCategory(categoryNum, userNum);
     }
     
 }

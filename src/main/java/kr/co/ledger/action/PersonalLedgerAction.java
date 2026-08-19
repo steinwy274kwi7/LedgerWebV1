@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.co.ledger.dto.CalendarDTO;
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.PersonalCategoryDTO;
 import kr.co.ledger.dto.PersonalTransactionDTO;
 import kr.co.ledger.dto.RatioDTO;
 import kr.co.ledger.dto.TrendDTO;
@@ -33,6 +34,9 @@ public class PersonalLedgerAction implements Action {
             case "calendar" 			-> "/views/personal_ledger/personal_calendar.jsp";
             case "saveTransaction" 		-> saveTransaction(request, response);
             case "deleteTransaction" 	-> deleteTransaction(request, response);
+            case "getCategoryList"	 	-> getCategoryList(request, response);
+            case "saveCategory"			-> saveCategory(request, response);
+            case "deleteCategory"		-> deleteCategory(request, response);
             default -> throw new IllegalArgumentException("PersonalLedgerAction에 없는 기능: " + command);
         };
     }
@@ -283,6 +287,71 @@ public class PersonalLedgerAction implements Action {
         
         PersonalLedgerService.getInstance().deleteTransaction(transNum, loginUser.getUserNum());
         
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().print("{\"success\":true}");
+        return null;
+    }
+    
+    // 카테고리 목록 조회
+    private String getCategoryList(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        String type = request.getParameter("type");
+        if (type == null) type = "E"; 
+
+        List<PersonalCategoryDTO> list = PersonalLedgerService.getInstance().getCategoryList(loginUser.getUserNum(), type);
+
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            PersonalCategoryDTO dto = list.get(i);
+            json.append("{\"categoryNum\":").append(dto.getCategoryNum())
+                .append(", \"categoryName\":\"").append(dto.getCategoryName()).append("\"}");
+            if (i < list.size() - 1) json.append(",");
+        }
+        json.append("]");
+        out.print(json.toString());
+        return null;
+    }
+
+    // 카테고리 등록 수정
+    private String saveCategory(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        String catNumStr = request.getParameter("categoryNum");
+        String catName = request.getParameter("categoryName").trim();
+        String catType = request.getParameter("categoryType");
+
+        if ("미분류".equals(catName)) {
+            out.print("{\"success\":false, \"message\":\"'미분류'는 시스템 예약어라 사용할 수 없습니다.\"}");
+            return null;
+        }
+        if (catName.length() > 20) {
+            out.print("{\"success\":false, \"message\":\"카테고리명은 최대 20자까지만 가능합니다.\"}");
+            return null;
+        }
+
+        PersonalCategoryDTO dto = new PersonalCategoryDTO();
+        dto.setUserNum(loginUser.getUserNum());
+        dto.setCategoryName(catName);
+        dto.setCategoryType(catType);
+        dto.setCategoryNum(catNumStr == null || catNumStr.isEmpty() ? 0 : Integer.parseInt(catNumStr));
+
+        PersonalLedgerService.getInstance().saveCategory(dto);
+        out.print("{\"success\":true}");
+        return null;
+    }
+
+    // 카테고리 삭제
+    private String deleteCategory(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        int catNum = Integer.parseInt(request.getParameter("categoryNum"));
+        String catType = request.getParameter("categoryType"); 
+
+        PersonalLedgerService.getInstance().deleteCategory(catNum, loginUser.getUserNum(), catType);
+
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().print("{\"success\":true}");
         return null;
