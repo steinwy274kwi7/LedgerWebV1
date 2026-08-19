@@ -76,4 +76,13 @@
     	WHERE USER_ID = ?
 	</entry>
 	
+	<!-- 개인 가계부 공개 비공개 설정 -->
+	<entry key="updateBookOpenYn">
+	    <![CDATA[
+	    UPDATE USERS 
+	    SET BOOK_OPEN_YN = ? 
+	    WHERE USER_NUM = ?
+	    ]]>
+	</entry>
+
 </properties>

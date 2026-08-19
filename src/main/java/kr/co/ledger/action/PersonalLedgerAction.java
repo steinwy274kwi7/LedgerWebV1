@@ -14,6 +14,7 @@ import kr.co.ledger.dto.RatioDTO;
 import kr.co.ledger.dto.TrendDTO;
 import kr.co.ledger.dto.UserDTO;
 import kr.co.ledger.service.PersonalLedgerService;
+import kr.co.ledger.service.UserService;
 import kr.co.ledger.util.UriUtil;
 
 public class PersonalLedgerAction implements Action {
@@ -37,6 +38,7 @@ public class PersonalLedgerAction implements Action {
             case "getCategoryList"	 	-> getCategoryList(request, response);
             case "saveCategory"			-> saveCategory(request, response);
             case "deleteCategory"		-> deleteCategory(request, response);
+            case "togglePublic" 		-> togglePublic(request, response);
             default -> throw new IllegalArgumentException("PersonalLedgerAction에 없는 기능: " + command);
         };
     }
@@ -357,4 +359,22 @@ public class PersonalLedgerAction implements Action {
         return null;
     }
     
+    // 개인 가계부 공개 비공개 설정
+    private String togglePublic(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        
+        String targetYn = request.getParameter("bookOpenYn");
+        if (targetYn == null || (!targetYn.equals("Y") && !targetYn.equals("N"))) {
+            targetYn = "N";
+        }
+        
+        UserService.getInstance().updateBookOpenYn(loginUser.getUserNum(), targetYn);
+
+        loginUser.setBookOpenYn(targetYn);
+        request.getSession().setAttribute("loginUser", loginUser);
+
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().print("{\"success\":true, \"currentYn\":\"" + targetYn + "\"}");
+        return null;
+    }
 }

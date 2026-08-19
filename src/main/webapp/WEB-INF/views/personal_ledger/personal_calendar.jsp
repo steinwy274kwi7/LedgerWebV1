@@ -22,6 +22,17 @@
 <body>
     <div class="ledger-container">
     
+    	<!-- 타이틀 및 설정 뱃지 영역 -->
+		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+		    <h2 style="margin: 0; color: #333;">개인 가계부</h2>
+		    
+		    <button id="btnPublicToggle" onclick="togglePublicYn()" 
+		            style="padding: 6px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; border: none; transition: background-color 0.3s;
+		                   ${loginUser.bookOpenYn == 'Y' ? 'background-color: #17a2b8; color: white;' : 'background-color: #e2e3e5; color: #555;'}">
+		        ${loginUser.bookOpenYn == 'Y' ? '🔓 공개 모드' : '🔒 비공개 모드'}
+		    </button>
+		</div>
+		
         <div id='calendar'></div>
 
         <div class="filter-box">
@@ -386,6 +397,43 @@
                         alert("삭제 실패: " + data.message);
                     }
                 });
+        }
+        
+        function togglePublicYn() {
+            const btn = document.getElementById('btnPublicToggle');
+            const isCurrentlyPublic = btn.innerText.includes('공개 모드') && !btn.innerText.includes('비');
+            const targetYn = isCurrentlyPublic ? 'N' : 'Y'; 
+            
+            const confirmMsg = targetYn === 'Y' 
+                ? "내 가계부를 그룹 멤버 등 외부 사용자에게 공개하시겠습니까?" 
+                : "내 가계부를 비공개로 전환하시겠습니까?";
+
+            if (!confirm(confirmMsg)) return;
+
+            const params = new URLSearchParams({ bookOpenYn: targetYn });
+
+            fetch('${pageContext.request.contextPath}/personal/togglePublic.do', {
+                method: 'POST',
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                	
+                    if (data.currentYn === 'Y') {
+                        btn.innerText = '공개 모드';
+                        btn.style.backgroundColor = '#17a2b8';
+                        btn.style.color = 'white';
+                    } else {
+                        btn.innerText = '비공개 모드';
+                        btn.style.backgroundColor = '#e2e3e5';
+                        btn.style.color = '#555';
+                    }
+                } else {
+                    alert("상태 변경에 실패했습니다.");
+                }
+            })
+            .catch(err => console.error('토글 실패:', err));
         }
     </script>
 </body>

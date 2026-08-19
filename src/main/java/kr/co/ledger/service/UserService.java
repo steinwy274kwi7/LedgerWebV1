@@ -95,4 +95,9 @@ public class UserService {
 	    return UserDAO.getInstance().wakeupUser(userId) > 0;
 	}
 	
+	// 개인 가계부 공개 비공개 설정
+	public void updateBookOpenYn(int userNum, String bookOpenYn) throws Exception {
+	    UserDAO.getInstance().updateBookOpenYn(userNum, bookOpenYn);
+	}
+	
 }

@@ -184,4 +184,15 @@ public class UserDAO {
         }
     }
     
+    // 개인 가계부 공개 비공개 설정
+    public void updateBookOpenYn(int userNum, String bookOpenYn) throws Exception {
+        String sql = SqlManager.getSql("updateBookOpenYn"); 
+        try (Connection conn = DBManager.getConnection(); 
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, bookOpenYn);
+            pstmt.setInt(2, userNum);
+            pstmt.executeUpdate();
+        }
+    }
+    
 }
