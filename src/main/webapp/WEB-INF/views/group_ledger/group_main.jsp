@@ -29,15 +29,20 @@
                 <button onclick="openCategoryModal()" style="padding: 10px 20px; background: #6f42c1; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🏷️ 카테고리 관리</button>
                 <button onclick="openExpenseModal()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">+ 지출 등록</button>
                 <button onclick="openLogModal()" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">📜 무결성 변경 이력</button>
+                
+                <button id="previewBtn" onclick="openPreviewModal()" 
+      				 style="padding: 10px 20px; background: #ff9800; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; display: ${group.settleUseYn == 'Y' ? 'inline-block' : 'none'};">
+   					 📊 실시간 정산 현황
+				</button>
+
                 <button onclick="openArchiveModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🗂️ 과거 내역</button>
             </div>
         </c:if>
-
+	
         <!-- 상단 토글 버튼 -->
         <div style="text-align:center; margin-bottom: 20px;">
             <button onclick="switchView('calendar')" style="padding:10px 20px; background:#007BFF; color:white; border:none; border-radius:5px; cursor:pointer;">달력 뷰</button>
             <button onclick="switchView('list')" style="padding:10px 20px; background:#6c757d; color:white; border:none; border-radius:5px; cursor:pointer;">리스트 뷰</button>
-            
         </div>
         
 		<div style="text-align: right; margin-bottom: 10px; padding-right: 10px;">
@@ -248,6 +253,22 @@
 	    </div>
 	</div>
 
+	<!-- 🌟 실시간 정산 미리보기 모달창 -->
+	<div id="previewModal" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 450px; z-index:1000;">
+	    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+	        <h3 style="margin: 0;">📊 실시간 정산 현황</h3>
+	        <button onclick="document.getElementById('previewModal').style.display='none'" style="background: none; border: none; font-size: 1.2em; cursor: pointer;">X</button>
+	    </div>
+	    
+	    <p style="color:#666; font-size:0.9em; margin-top:0; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:5px;">
+	        현재 진행 중인 회차의 1/N 실시간 시뮬레이션입니다.<br>
+	        <span style="font-size:0.85em; color:#dc3545;">(소수점 오차는 최대 지출자가 부담하여 딱 떨어지게 맞춥니다.)</span>
+	    </p>
+	    
+	    <ul id="previewListArea" style="list-style:none; padding-left:0; margin:0; max-height:300px; overflow-y:auto;">
+	    </ul>
+	</div>
+
     <script>
         function openSettingsModal() {
             document.getElementById('settingsModal').style.display = 'block';
@@ -284,9 +305,11 @@
                     alert(data.message);
                     document.getElementById('displayGroupName').innerText = name;
                     document.getElementById('displayGroupDesc').innerText = desc;
-                    
-                    // 🌟 화면단 hidden 값도 즉시 최신화 (새로고침 없이 바로 적용되게)
                     document.getElementById('groupSettleUseYn').value = settleYn; 
+                    const previewBtn = document.getElementById('previewBtn');
+                    if (previewBtn) {
+                        previewBtn.style.display = (settleYn === 'Y') ? 'inline-block' : 'none';
+                    }
                     
                     closeSettingsModal();
                 } else {
@@ -1068,6 +1091,38 @@
             })
             .catch(err => console.error('상세 내역 로드 실패:', err));
         }
+     	// ==========================================================
+        // 실시간 정산 미리보기 JS 기능
+        // ==========================================================
+        function openPreviewModal() {
+            document.getElementById('previewModal').style.display = 'block';
+            const groupNum = document.getElementById('settingGroupNum').value;
+            
+            fetch(`${pageContext.request.contextPath}/settlement/preview.do?groupNum=\${groupNum}`)
+            .then(res => res.json())
+            .then(data => {
+                const listArea = document.getElementById('previewListArea');
+                let html = '';
+                
+                if (data.length === 0) {
+                    html = '<li style="text-align:center; padding:30px; color:#888;">정산할 내역이 없습니다 (모두 0원).</li>';
+                } else {
+                    data.forEach(s => {
+                        html += `
+                            <li style="padding:12px 10px; border-bottom:1px solid #eee; font-size:1.05em; display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <b style="color:#dc3545;">\${s.payerNickname}</b> 님이 ➔ 
+                                    <b style="color:#28a745;">\${s.receiverNickname}</b> 님에게
+                                </div>
+                                <strong style="color:#333;">\${s.settleAmount.toLocaleString()} 원</strong>
+                            </li>`;
+                    });
+                }
+                listArea.innerHTML = html;
+            })
+            .catch(err => console.error('미리보기 로드 실패:', err));
+        }
+     
     </script>
 </body>
 </html>

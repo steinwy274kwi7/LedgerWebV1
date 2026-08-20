@@ -15,7 +15,20 @@ public class SettlementSnapshotDAO {
     private SettlementSnapshotDAO() {}
     public static SettlementSnapshotDAO getInstance() { return instance; }
 
-    // 멤버별 지출액 합계 조회
+    // 🌟 추가: 현재 진행 중인 회차 번호 조회
+    public int getOpenPeriodNum(int groupNum) throws Exception {
+        int periodNum = 0;
+        String sql = SqlManager.getSql("getOpenPeriodNum");
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, groupNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) periodNum = rs.getInt("PERIOD_NUM");
+            }
+        }
+        return periodNum;
+    }
+
+    // 기존 멤버별 지출액 합계 조회 (닉네임 세팅 추가)
     public List<MemberExpenseDTO> getMemberTotalExpenses(int groupNum, int periodNum) throws Exception {
         List<MemberExpenseDTO> list = new ArrayList<>();
         String sql = SqlManager.getSql("getMemberTotalExpenses");
@@ -26,6 +39,7 @@ public class SettlementSnapshotDAO {
                 while (rs.next()) {
                     MemberExpenseDTO dto = new MemberExpenseDTO();
                     dto.setUserNum(rs.getInt("USER_NUM"));
+                    dto.setNickname(rs.getString("USER_NICKNAME")); 
                     dto.setSpentAmount(rs.getLong("SPENT_AMOUNT"));
                     list.add(dto);
                 }
@@ -34,7 +48,7 @@ public class SettlementSnapshotDAO {
         return list;
     }
 
-    // 🌟 정산 스냅샷 저장 + 장부 마감 + 새 장부 오픈 (하나라도 실패하면 자동 롤백)
+ // 🌟 이 메서드를 SettlementSnapshotDAO 파일 맨 아래(클래스 닫기 전)에 다시 붙여넣어 주세요!
     public boolean executeSettlementTransaction(int groupNum, int oldPeriodNum, int newPeriodSeq, List<SettlementSnapshotDTO> snapshots) throws Exception {
         Connection conn = null;
         try {

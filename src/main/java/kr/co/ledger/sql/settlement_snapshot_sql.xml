@@ -4,14 +4,19 @@
 
 <!-- 현재 회차의 멤버별 총 지출액 조회 (지출 0원인 멤버도 포함하기 위해 LEFT JOIN) -->
 <entry key="getMemberTotalExpenses">
-    <![CDATA[
-    SELECT M.USER_NUM, NVL(SUM(T.TRANS_AMOUNT), 0) AS SPENT_AMOUNT
+    SELECT 
+        M.USER_NUM, 
+        U.USER_NICKNAME,
+        NVL(SUM(T.TRANS_AMOUNT), 0) AS SPENT_AMOUNT
     FROM GROUP_MEMBERS M
+    JOIN USERS U ON M.USER_NUM = U.USER_NUM
     LEFT JOIN GROUP_TRANSACTIONS T 
-      ON M.USER_NUM = T.USER_NUM AND T.PERIOD_NUM = ? AND T.USE_YN = 'Y'
+        ON M.GROUP_NUM = T.GROUP_NUM 
+        AND M.USER_NUM = T.USER_NUM 
+        AND T.PERIOD_NUM = ? 
+        AND T.USE_YN = 'Y'
     WHERE M.GROUP_NUM = ? AND M.MEMBER_STATUS = 'A'
-    GROUP BY M.USER_NUM
-    ]]>
+    GROUP BY M.USER_NUM, U.USER_NICKNAME
 </entry>
 
 <!-- 정산 스냅샷 벌크 저장 -->

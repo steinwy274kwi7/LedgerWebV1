@@ -1,8 +1,11 @@
 package kr.co.ledger.action;
 
 import java.io.PrintWriter;
+import java.util.List;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import kr.co.ledger.dto.SettlementSnapshotDTO;
 import kr.co.ledger.dto.UserDTO;
 import kr.co.ledger.service.SettlementService;
 import kr.co.ledger.util.UriUtil;
@@ -16,6 +19,7 @@ public class SettlementAction implements Action {
         
         return switch (methodName) {
             case "closePeriod" -> closePeriod(request, response);
+            case "preview" 	   -> getPreview(request, response);
             default -> throw new IllegalArgumentException("SettlementAction에 없는 기능: " + command);
         };
     }
@@ -43,4 +47,40 @@ public class SettlementAction implements Action {
         }
         return null;
     }
+    
+    // ==========================================================
+    // 실시간 정산 미리보기 API
+    // ==========================================================
+    private String getPreview(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            
+            // Service 핵심 알고리즘 호출
+            List<SettlementSnapshotDTO> list = SettlementService.getInstance().getSettlementPreview(groupNum);
+            
+            // JSON 수동 조립
+            StringBuilder json = new StringBuilder("[");
+            for (int i = 0; i < list.size(); i++) {
+                SettlementSnapshotDTO s = list.get(i);
+                json.append(String.format(
+                    "{\"payerNickname\":\"%s\", \"receiverNickname\":\"%s\", \"settleAmount\":%d}",
+                    s.getPayerNickname(), s.getReceiverNickname(), s.getSettleAmount()
+                ));
+                if (i < list.size() - 1) json.append(",");
+            }
+            json.append("]");
+            
+            out.print(json.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+            out.print("[]");
+        } finally {
+            out.flush();
+        }
+        return null;
+    }
+    
 }

@@ -31,4 +31,16 @@
     ]]>
 </entry>
 
+<entry key="getOpenPeriodNum">
+    SELECT PERIOD_NUM 
+    FROM LEDGER_PERIODS 
+    WHERE GROUP_NUM = ? AND PERIOD_STATUS = 'O'
+</entry>
+
+<entry key="getOpenPeriodNum">
+    SELECT PERIOD_NUM 
+    FROM LEDGER_PERIODS 
+    WHERE GROUP_NUM = ? AND PERIOD_STATUS = 'O'
+</entry>
+
 </properties>
