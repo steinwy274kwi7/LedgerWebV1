@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import kr.co.ledger.dao.PersonalCategoryDAO;
 import kr.co.ledger.dao.UserDAO;
 import kr.co.ledger.dto.UserDTO;
 
@@ -16,11 +17,24 @@ public class UserService {
 	public static UserService getInstance() { return instance; }
 	
 	// 회원가입
-	public boolean registerUser(UserDTO dto) {
-		String plainPw = dto.getUserPw();
-		String hashedPw = BCrypt.hashpw(plainPw, BCrypt.gensalt());
-		dto.setUserPw(hashedPw);
-		return UserDAO.getInstance().insertUser(dto);
+	public boolean registerUser(UserDTO dto) throws Exception {
+	    // 1. 비밀번호 암호화 (기존 로직 유지)
+	    String plainPw = dto.getUserPw();
+	    String hashedPw = BCrypt.hashpw(plainPw, BCrypt.gensalt());
+	    dto.setUserPw(hashedPw);
+	    
+	    // 2. 유저 DB 인서트
+	    boolean isSuccess = UserDAO.getInstance().insertUser(dto);
+	    
+	    if (isSuccess) {
+	        // 3. 🌟 기존에 잘 만들어두신 getUserById를 활용하여 방금 가입한 유저 정보 가져오기!
+	        UserDTO newUser = UserDAO.getInstance().getUserById(dto.getUserId());
+	        
+	        // 4. 개인 가계부용 미분류 카테고리(수입/지출) 2개 자동 생성 트리거 발동!
+	        PersonalCategoryDAO.getInstance().insertDefaultCategories(newUser.getUserNum());
+	    }
+	    
+	    return isSuccess;
 	}
 	
 	// 로그인

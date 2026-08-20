@@ -106,4 +106,14 @@ public class GroupCategoryDAO {
 	        if (conn != null) conn.close();
 	    }
 	}
+	
+	// 신규 방 생성용 기본 카테고리 자동 생성
+	public void insertDefaultCategory(int groupNum) throws Exception {
+	    String sql = SqlManager.getSql("insertDefaultGroupCategory");
+	    try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	        pstmt.setInt(1, groupNum);
+	        pstmt.executeUpdate();
+	    }
+	}
+	
 }

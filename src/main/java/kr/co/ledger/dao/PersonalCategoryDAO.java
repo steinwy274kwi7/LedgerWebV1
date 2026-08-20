@@ -98,4 +98,22 @@ public class PersonalCategoryDAO {
             pstmt.executeUpdate();
         }
     }
+    
+    // 신규 가입자용 기본 카테고리(지출/수입) 2개 자동 생성
+    public void insertDefaultCategories(int userNum) throws Exception {
+        String sqlExpense = SqlManager.getSql("insertDefaultPersonalCategoryExpense");
+        String sqlIncome = SqlManager.getSql("insertDefaultPersonalCategoryIncome");
+        
+        try (Connection conn = DBManager.getConnection()) {
+            try (PreparedStatement pstmt1 = conn.prepareStatement(sqlExpense)) {
+                pstmt1.setInt(1, userNum);
+                pstmt1.executeUpdate();
+            }
+            try (PreparedStatement pstmt2 = conn.prepareStatement(sqlIncome)) {
+                pstmt2.setInt(1, userNum);
+                pstmt2.executeUpdate();
+            }
+        }
+    }
+    
 }

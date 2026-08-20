@@ -91,7 +91,7 @@ public class GroupDAO {
                 pstmtMember.setInt(2, dto.getGroupOwnerNum());
                 pstmtMember.executeUpdate();
             }
-
+            dto.setGroupNum(newGroupNum);
             conn.commit();
             
         } catch (Exception e) {

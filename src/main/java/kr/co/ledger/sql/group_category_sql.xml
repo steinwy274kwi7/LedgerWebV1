@@ -55,4 +55,12 @@
     ]]>
 </entry>
 
+<!-- 미분류 카테고리 자동생성 -->
+<entry key="insertDefaultGroupCategory">
+    <![CDATA[
+    INSERT INTO GROUP_CATEGORIES (GCATEGORY_NUM, GROUP_NUM, CATEGORY_NAME, IS_DEFAULT_YN, USE_YN, CREATED_AT)
+    VALUES (SEQ_GROUP_CATEGORIES.NEXTVAL, ?, '미분류', 'Y', 'Y', SYSDATE)
+    ]]>
+</entry>
+
 </properties>

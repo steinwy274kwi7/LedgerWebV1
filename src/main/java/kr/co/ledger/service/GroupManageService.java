@@ -3,6 +3,7 @@ package kr.co.ledger.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import kr.co.ledger.dao.GroupCategoryDAO;
 import kr.co.ledger.dao.GroupDAO;
 import kr.co.ledger.dao.GroupMemberDAO;
 import kr.co.ledger.dao.InvitationDAO;
@@ -50,12 +51,17 @@ public class GroupManageService {
 	
 	// 그룹 생성
 	public void createGroup(GroupDTO dto) throws Exception {
+	    // 1. 방 개수 10개 제한 체크 (기존 로직 유지)
 	    int count = GroupDAO.getInstance().checkGroupCount(dto.getGroupOwnerNum());
 	    if (count >= 10) {
 	        throw new IllegalStateException("최대 가입 가능한 공동 가계부(10개)를 초과했습니다.");
 	    }
 	    
+	    // 2. 그룹 생성 및 방장 가입 로직 실행
 	    GroupDAO.getInstance().createGroup(dto);
+	    
+	    // 3. 새로 생성된 방 번호(dto.getGroupNum())를 꺼내서 '미분류' 카테고리 자동 생성!
+	    GroupCategoryDAO.getInstance().insertDefaultCategory(dto.getGroupNum());
 	}
 	
 	// 그룹 설정 업데이트
