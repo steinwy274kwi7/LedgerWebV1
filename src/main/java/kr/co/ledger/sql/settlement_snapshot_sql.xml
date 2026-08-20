@@ -1,4 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
+
+<!-- 현재 회차의 멤버별 총 지출액 조회 (지출 0원인 멤버도 포함하기 위해 LEFT JOIN) -->
+<entry key="getMemberTotalExpenses">
+    <![CDATA[
+    SELECT M.USER_NUM, NVL(SUM(T.TRANS_AMOUNT), 0) AS SPENT_AMOUNT
+    FROM GROUP_MEMBERS M
+    LEFT JOIN GROUP_TRANSACTIONS T 
+      ON M.USER_NUM = T.USER_NUM AND T.PERIOD_NUM = ? AND T.USE_YN = 'Y'
+    WHERE M.GROUP_NUM = ? AND M.MEMBER_STATUS = 'A'
+    GROUP BY M.USER_NUM
+    ]]>
+</entry>
+
+<!-- 정산 스냅샷 벌크 저장 -->
+<entry key="insertSettlementSnapshot">
+    <![CDATA[
+    INSERT INTO SETTLEMENT_SNAPSHOTS (
+        SETTLE_NUM, PERIOD_NUM, PAYER_USER_NUM, RECEIVER_USER_NUM, SETTLE_AMOUNT, CREATED_AT
+    ) VALUES (
+        SEQ_SETTLEMENT_SNAPSHOTS.NEXTVAL, ?, ?, ?, ?, SYSDATE
+    )
+    ]]>
+</entry>
+
 </properties>

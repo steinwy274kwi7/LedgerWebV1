@@ -83,6 +83,7 @@ public class GroupTransactionDAO {
                     dto.setTransMemo(rs.getString("TRANS_MEMO"));
                     dto.setUserNickname(rs.getString("USER_NICKNAME"));
                     dto.setCategoryName(rs.getString("CATEGORY_NAME"));
+                    dto.setPeriodStatus(rs.getString("PERIOD_STATUS"));
                     
                     list.add(dto);
                 }

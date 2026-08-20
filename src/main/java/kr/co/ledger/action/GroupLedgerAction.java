@@ -173,15 +173,17 @@ public class GroupLedgerAction implements Action {
             // 4단계에서 만든 서비스 메서드 호출
             List<GroupTransactionDTO> list = GroupLedgerService.getInstance().getMonthlyTransactions(groupNum, yearMonth);
             
-            // JSON 배열로 직접 조립해서 반환
+         // JSON 배열로 직접 조립해서 반환
             StringBuilder json = new StringBuilder("[");
             for (int i = 0; i < list.size(); i++) {
                 GroupTransactionDTO dto = list.get(i);
+                
                 json.append(String.format(
-                    "{\"gtransNum\":%d, \"userNum\":%d, \"userNickname\":\"%s\", \"categoryName\":\"%s\", \"transAmount\":%d, \"transDate\":\"%s\", \"transMemo\":\"%s\"}",
+                    "{\"gtransNum\":%d, \"userNum\":%d, \"userNickname\":\"%s\", \"categoryName\":\"%s\", \"transAmount\":%d, \"transDate\":\"%s\", \"transMemo\":\"%s\", \"periodStatus\":\"%s\"}",
                     dto.getGtransNum(), dto.getUserNum(), dto.getUserNickname(), 
-                    dto.getCategoryName(), dto.getTransAmount(), dto.getTransDate(), dto.getTransMemo()
+                    dto.getCategoryName(), dto.getTransAmount(), dto.getTransDate(), dto.getTransMemo(), dto.getPeriodStatus()
                 ));
+                
                 if (i < list.size() - 1) json.append(",");
             }
             json.append("]");

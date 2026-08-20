@@ -16,7 +16,7 @@
         ORDER BY GM.JOIN_DATE DESC
         ]]>
     </entry>
-    
+
     <!-- 내가 속한 방 개수 확인 (최대 10개 제한용) -->
 	<entry key="checkGroupCount">
 	    <![CDATA[
@@ -24,14 +24,14 @@
 	    WHERE USER_NUM = ? AND MEMBER_STATUS = 'A'
 	    ]]>
 	</entry>
-	
+
 	<!-- 새로운 그룹 방 번호(시퀀스) 미리 가져오기 -->
 	<entry key="getGroupSeq">
 	    <![CDATA[
 	    SELECT SEQ_GROUPS.NEXTVAL FROM DUAL
 	    ]]>
 	</entry>
-	
+
 	<!-- 그룹 방 생성 -->
 	<entry key="insertGroup">
 	    <![CDATA[
@@ -39,7 +39,7 @@
 	    VALUES (?, ?, ?, ?, ?, ?, 'Y', 'Y', SYSDATE)
 	    ]]>
 	</entry>
-	
+
 	<!-- 방장을 방 멤버로 자동 추가 -->
 	<entry key="insertGroupMemberOwner">
 	    <![CDATA[
@@ -47,7 +47,7 @@
 	    VALUES (SEQ_GROUP_MEMBERS.NEXTVAL, ?, ?, SYSDATE, 'A')
 	    ]]>
 	</entry>
-	
+
 	<!-- 그룹 설정 업데이트 (방장 본인만 가능하도록 조건 추가) -->
 	<entry key="updateGroupSettings">
 	    <![CDATA[
@@ -65,7 +65,7 @@
 	    SELECT * FROM GROUPS WHERE GROUP_NUM = ?
 	    ]]>
 	</entry>
-	
+
 	<!-- 방 소프트 딜리트 (방장 본인만 가능) -->
 	<entry key="deleteGroup">
 	    <![CDATA[
@@ -74,28 +74,28 @@
 	    WHERE GROUP_NUM = ? AND GROUP_OWNER_NUM = ?
 	    ]]>
 	</entry>
-	
+
 	<!-- 현재 그룹 멤버 수 확인 (50명 정원 체크용) -->
 	<entry key="getGroupMemberCount">
 	    <![CDATA[
 	    SELECT COUNT(*) FROM GROUP_MEMBERS WHERE GROUP_NUM = ? AND MEMBER_STATUS = 'A'
 	    ]]>
 	</entry>
-	
+
 	<!-- 이미 멤버인지 확인 -->
 	<entry key="checkAlreadyMember">
 	    <![CDATA[
 	    SELECT COUNT(*) FROM GROUP_MEMBERS WHERE GROUP_NUM = ? AND USER_NUM = ? AND MEMBER_STATUS = 'A'
 	    ]]>
 	</entry>
-	
+
 	<!-- 이미 초대 대기 중인지 확인 -->
 	<entry key="checkAlreadyInvited">
 	    <![CDATA[
 	    SELECT COUNT(*) FROM INVITATIONS WHERE GROUP_NUM = ? AND INVITEE_NUM = ? AND INVITE_STATUS = 'P'
 	    ]]>
 	</entry>
-	
+
 	<!-- 초대장 발송 (INSERT) -->
 	<entry key="insertInvitation">
 	    <![CDATA[
@@ -124,7 +124,7 @@
 	        M.JOIN_DATE ASC
 	    ]]>
 	</entry>
-	
+
 	<!-- 멤버 강퇴 및 자진 탈퇴 (소프트 딜리트) -->
 	<entry key="withdrawGroupMember">
 	    <![CDATA[
@@ -146,7 +146,7 @@
 	    ) WHERE ROWNUM = 1
 	    ]]>
 	</entry>
-	
+
 	<!-- 방장 권한 위임 (GROUPS 테이블의 방장 번호 업데이트) -->
 	<entry key="updateGroupOwner">
 	    <![CDATA[
@@ -167,17 +167,19 @@
 	    ]]>
 	</entry>
 
-	<!-- 그룹 달력 리스트 뷰 보기 -->
+	<!-- 그룹 달력 리스트 뷰 보기 (마감 상태값 포함해서 전부 가져오기) -->
 	<entry key="getMonthlyGroupTransactions">
 	    <![CDATA[
 	    SELECT 
 	        T.GTRANS_NUM, T.GROUP_NUM, T.TRANS_AMOUNT, 
 	        TO_CHAR(T.TRANS_DATE, 'YYYY-MM-DD') AS TRANS_DATE,
 	        T.TRANS_MEMO, T.USER_NUM, U.USER_NICKNAME,
-	        C.CATEGORY_NAME
+	        C.CATEGORY_NAME,
+	        LP.PERIOD_STATUS
 	    FROM GROUP_TRANSACTIONS T
 	    JOIN USERS U ON T.USER_NUM = U.USER_NUM
 	    JOIN GROUP_CATEGORIES C ON T.GCATEGORY_NUM = C.GCATEGORY_NUM
+	    JOIN LEDGER_PERIODS LP ON T.PERIOD_NUM = LP.PERIOD_NUM
 	    WHERE T.GROUP_NUM = ? 
 	      AND TO_CHAR(T.TRANS_DATE, 'YYYY-MM') = ?
 	      AND T.USE_YN = 'Y'

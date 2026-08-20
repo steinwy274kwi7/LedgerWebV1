@@ -16,6 +16,7 @@
 		    <c:if test="${group.groupOwnerNum == loginUser.userNum}">
   				<button id="inviteBtn" onclick="openInviteModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="멤버 초대">➕</button>
     			<button id="settingBtn" onclick="openSettingsModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;" title="방 설정">⚙️</button>
+    			<button id="closePeriodBtn" onclick="closeLedgerPeriod()" style="background: #dc3545; color: white; border: none; border-radius: 5px; padding: 5px 12px; font-weight: bold; font-size: 0.9em; cursor: pointer; margin-left: 10px;" title="현재 장부를 마감하고 정산합니다">정산 및 마감 💰</button>
 			</c:if>
 		</div>
         <p id="displayGroupDesc" style="color: #666;">${group.groupDesc}</p>
@@ -35,8 +36,16 @@
         <div style="text-align:center; margin-bottom: 20px;">
             <button onclick="switchView('calendar')" style="padding:10px 20px; background:#007BFF; color:white; border:none; border-radius:5px; cursor:pointer;">달력 뷰</button>
             <button onclick="switchView('list')" style="padding:10px 20px; background:#6c757d; color:white; border:none; border-radius:5px; cursor:pointer;">리스트 뷰</button>
+            
         </div>
-
+        
+		<div style="text-align: right; margin-bottom: 10px; padding-right: 10px;">
+            <label style="cursor: pointer; font-size: 0.9em; color: #666; font-weight: bold;">
+                <input type="checkbox" id="toggleClosedData" onchange="refreshCurrentView()" style="accent-color: #6c757d;">
+                🔒 이전 정산 내역 같이 보기
+            </label>
+        </div>
+        
         <!-- 뷰 영역 (한 번에 하나만 보임) -->
         <div id="calendarView" style="display:block;">
             <h3 id="currentMonthLabel" style="text-align:center;"></h3>
@@ -540,7 +549,7 @@
             fetchCategoryList(); /* 화면 로드 시 카테고리 목록 불러오기 */
         };
         
-        // 달력 뷰 그리기 (renderCalendar)
+     // 달력 뷰 그리기 (renderCalendar)
         function renderCalendar() {
             const calendarView = document.getElementById('calendarView');
             const yearMonth = document.getElementById('currentMonthLabel').innerText; 
@@ -550,6 +559,8 @@
             const firstDay = new Date(year, month - 1, 1).getDay(); 
             const lastDate = new Date(year, month, 0).getDate(); 
 
+            const showClosed = document.getElementById('toggleClosedData').checked; 
+            
             let html = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 20px;">`;
             
             const days = ['일', '월', '화', '수', '목', '금', '토'];
@@ -562,6 +573,7 @@
             }
 
             for (let d = 1; d <= lastDate; d++) {
+                // 문제의 원인이었던 String(d) 부분 이스케이프 완료!
                 const dateStr = `\${year}-\${month}-\${String(d).padStart(2, '0')}`;
                 const dayTransactions = currentData.filter(t => t.transDate === dateStr);
                 
@@ -569,16 +581,28 @@
                 dayHtml += `<strong style="display: block; margin-bottom: 5px;">\${d}</strong>`; 
                 
                 if (dayTransactions.length > 0) {
-                    let dailyTotal = 0;
+                    let activeTotal = 0; 
+                    
                     dayTransactions.forEach(t => {
-                        dailyTotal += t.transAmount;
-                        dayHtml += `<div style="font-size: 0.75em; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        [\${t.userNickname}] \${t.transAmount.toLocaleString()}원
+                        const isClosed = (t.periodStatus === 'C');
+                        
+                        if (!showClosed && isClosed) return; 
+                        
+                        if (!isClosed) activeTotal += t.transAmount;
+                        
+                        const colorStyle = isClosed ? "opacity: 0.4; color: #555;" : "color: #555;";
+                        const icon = isClosed ? "[마감] " : "";
+                        
+                        dayHtml += `<div style="font-size: 0.75em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; \${colorStyle}">
+                                        \${icon}[\${t.userNickname}] \${t.transAmount.toLocaleString()}원
                                     </div>`;
                     });
-                    dayHtml += `<div style="font-size: 0.85em; font-weight: bold; color: #dc3545; margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 3px;">
-                                    총 \${dailyTotal.toLocaleString()}원
-                                </div>`;
+                    
+                    if (activeTotal > 0) {
+                        dayHtml += `<div style="font-size: 0.85em; font-weight: bold; color: #dc3545; margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 3px;">
+                                        총 \${activeTotal.toLocaleString()}원
+                                    </div>`;
+                    }
                 }
                 dayHtml += `</div>`;
                 html += dayHtml;
@@ -588,9 +612,10 @@
             calendarView.innerHTML = `<h3 id="currentMonthLabel" style="text-align:center;">\${yearMonth}</h3>` + html;
         }
         
-        // 리스트 뷰 그리기 (renderList)
+     	// 리스트 뷰 그리기 (renderList)
         function renderList() {
             const listView = document.getElementById('listView');
+            const showClosed = document.getElementById('toggleClosedData').checked; // 체크 여부 확인
             
             if (currentData.length === 0) {
                 listView.innerHTML = `<div style="text-align: center; padding: 50px; color: #888;">이번 달 지출 내역이 없습니다.</div>`;
@@ -598,11 +623,22 @@
             }
 
             let html = `<ul style="list-style: none; padding: 0; margin: 0;">`;
+            let visibleCount = 0; // 화면에 렌더링되는 항목 수 카운트
+
             currentData.forEach(t => {
-                // 권한 체크: 작성자 본인 또는 방장일 때만 버튼 노출
+                const isClosed = (t.periodStatus === 'C');
+                
+                // 체크 해제 상태이면서 마감된 내역이면 렌더링 건너뜀
+                if (!showClosed && isClosed) return;
+                
+                visibleCount++;
+                
+                // 마감된 내역은 투명도를 주어 흐리게 처리
+                const itemStyle = isClosed ? "opacity: 0.4; color: #555;" : "color: #000;";
+                const badgeHtml = isClosed ? `<span style="font-size:0.7em; background:#6c757d; color:white; padding:2px 6px; border-radius:3px; margin-left:5px; vertical-align:middle;">정산완료</span>` : "";
+                
                 let actionButtons = '';
-                if (t.userNum === currentUserNum || currentUserNum === groupOwnerNum) {
-                    // 따옴표 오류 방지를 위해 특수문자 치환하여 넘기기
+                if (!isClosed && (t.userNum === currentUserNum || currentUserNum === groupOwnerNum)) {
                     const safeMemo = t.transMemo ? t.transMemo.replace(/'/g, "\\'") : '';
                     actionButtons = `
                         <div style="margin-top: 8px;">
@@ -613,20 +649,30 @@
                 }
 
                 html += `
-                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee;">
+                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; \${itemStyle}">
                         <div>
-                            <strong style="font-size: 1.1em; display: block;">\${t.categoryName} - \${t.transMemo || '메모 없음'}</strong>
-                            <span style="font-size: 0.85em; color: #888;">\${t.transDate} | 결제자: \${t.userNickname}</span>
+                            <strong style="font-size: 1.1em; display: inline-block; margin-bottom: 5px;">
+                                \${t.categoryName} - \${t.transMemo || '메모 없음'} \${badgeHtml}
+                            </strong>
+                            <span style="font-size: 0.85em; display: block; \${isClosed ? 'color: #888;' : 'color: #888;'}">
+                                \${t.transDate} | 결제자: \${t.userNickname}
+                            </span>
                             \${actionButtons}
                         </div>
-                        <div style="font-size: 1.2em; font-weight: bold; color: #dc3545;">
+                        <div style="font-size: 1.2em; font-weight: bold; \${isClosed ? 'color: #555;' : 'color: #dc3545;'}">
                             \${t.transAmount.toLocaleString()} 원
                         </div>
                     </li>
                 `;
             });
             html += `</ul>`;
-            listView.innerHTML = html;
+            
+            // 필터링 결과 렌더링할 데이터가 하나도 없는 경우 빈 화면 메시지 처리
+            if (visibleCount === 0) {
+                listView.innerHTML = `<div style="text-align: center; padding: 50px; color: #888;">이번 달 지출 내역이 없습니다.</div>`;
+            } else {
+                listView.innerHTML = html;
+            }
         }
 
         // 지출 등록 스크립트
@@ -881,6 +927,50 @@
                 area.innerHTML = html;
             })
             .catch(err => console.error('이력 로드 실패:', err));
+        }
+     
+        let isClosing = false; 
+
+        function closeLedgerPeriod() {
+            if (isClosing) return; 
+            
+            const msg = "정말 현재 장부를 마감하시겠습니까?\n\n- 현재까지의 모든 지출은 과거 기록으로 보관됩니다.\n- 멤버 간 1/N 정산 결과가 스냅샷으로 영구 저장됩니다.\n- 장부 잔액이 0원으로 초기화되며 새 회차가 시작됩니다.";
+            
+            if (!confirm(msg)) return;
+            
+            isClosing = true; 
+            
+            const params = new URLSearchParams({ 
+                groupNum: document.getElementById('settingGroupNum').value,
+                groupOwnerNum: groupOwnerNum 
+            });
+
+            fetch('${pageContext.request.contextPath}/settlement/closePeriod.do', {
+                method: 'POST',
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload(); 
+                } else {
+                    alert("마감 실패: " + data.message);
+                    isClosing = false; 
+                }
+            })
+            .catch(err => {
+                console.error('장부 마감 중 에러 발생:', err);
+                isClosing = false;
+            });
+        }
+     // 체크박스를 누를 때마다 현재 열려있는 뷰를 다시 그려줍니다.
+        function refreshCurrentView() {
+            if (document.getElementById('calendarView').style.display === 'block') {
+                renderCalendar();
+            } else {
+                renderList();
+            }
         }
     </script>
 </body>

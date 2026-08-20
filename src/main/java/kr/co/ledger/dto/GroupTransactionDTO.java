@@ -14,8 +14,17 @@ public class GroupTransactionDTO {
     private String createdAt;
     private String userNickname;
     private String categoryName;
+    private String periodStatus;
 
-    public String getUserNickname() {
+    public String getPeriodStatus() {
+		return periodStatus;
+	}
+
+	public void setPeriodStatus(String periodStatus) {
+		this.periodStatus = periodStatus;
+	}
+
+	public String getUserNickname() {
 		return userNickname;
 	}
 
