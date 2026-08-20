@@ -21,7 +21,7 @@ public class GroupLedgerAction implements Action {
     @Override
     public String execute(HttpServletRequest request, HttpServletResponse response) throws Exception {
         String command = UriUtil.getCommand(request);
-        String methodName = command.substring(command.lastIndexOf("/") + 1, command.lastIndexOf("."));
+        String methodName = command.substring(command.lastIndexOf("/") + 1, command.lastIndexOf(".")).trim();
         
         return switch (methodName) {
             case "statistics" -> "/views/group_ledger/group_statistics.jsp"; 
@@ -35,6 +35,8 @@ public class GroupLedgerAction implements Action {
             case "addCategory"     		-> addCategory(request, response);
             case "editCategory"    		-> editCategory(request, response);
             case "removeCategory"  		-> removeCategory(request, response);
+            case "editTransaction"   	-> editTransaction(request, response);
+            case "removeTransaction" 	-> removeTransaction(request, response);
             default -> throw new IllegalArgumentException("GroupLedgerAction에 없는 기능: " + command);
         };
     }
@@ -290,6 +292,53 @@ public class GroupLedgerAction implements Action {
             
             GroupLedgerService.getInstance().removeCategory(groupNum, categoryNum, categoryName, loginUser.getUserNum());
             out.print("{\"success\": true, \"message\": \"삭제 완료! 관련 지출 내역은 '미분류'로 자동 이관되었습니다.\"}");
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally { out.flush(); }
+        return null;
+    }
+    
+    // [지출 내역 수정 API]
+    private String editTransaction(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        try {
+            UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+            int actionUserNum = loginUser.getUserNum();
+            
+            int groupOwnerNum = Integer.parseInt(request.getParameter("groupOwnerNum"));
+            String newCatName = request.getParameter("categoryName"); // 로그용 카테고리 이름
+            
+            GroupTransactionDTO dto = new GroupTransactionDTO();
+            dto.setGtransNum(Integer.parseInt(request.getParameter("gtransNum")));
+            dto.setGcategoryNum(Integer.parseInt(request.getParameter("gcategoryNum")));
+            dto.setTransAmount(Long.parseLong(request.getParameter("transAmount")));
+            dto.setTransDate(request.getParameter("transDate"));
+            dto.setTransMemo(request.getParameter("transMemo"));
+            
+            GroupLedgerService.getInstance().editTransaction(dto, newCatName, actionUserNum, groupOwnerNum);
+            
+            out.print("{\"success\": true, \"message\": \"지출 내역이 성공적으로 수정되었습니다.\"}");
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally { out.flush(); }
+        return null;
+    }
+
+    // [지출 내역 삭제 API]
+    private String removeTransaction(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        try {
+            UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+            int actionUserNum = loginUser.getUserNum();
+            
+            int gtransNum = Integer.parseInt(request.getParameter("gtransNum"));
+            int groupOwnerNum = Integer.parseInt(request.getParameter("groupOwnerNum"));
+            
+            GroupLedgerService.getInstance().removeTransaction(gtransNum, actionUserNum, groupOwnerNum);
+            
+            out.print("{\"success\": true, \"message\": \"지출 내역이 삭제되었습니다.\"}");
         } catch (Exception e) {
             out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
         } finally { out.flush(); }

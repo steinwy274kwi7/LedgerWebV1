@@ -64,11 +64,7 @@ public class GroupLedgerService {
         return GroupTransactionDAO.getInstance().insertTransaction(dto);
     }
     
-	 // ==========================================
-	 // 카테고리 관리 로직 시작
-	 // ==========================================
-	
-	 // 1. 공통 검증 로직 (20자 제한, 예약어 차단)
+	 // 공통 검증 로직 (20자 제한, 예약어 차단)
 	 private void validateCategoryName(String name) throws Exception {
 	     if (name == null || name.trim().isEmpty()) {
 	         throw new Exception("카테고리명을 입력해주세요.");
@@ -81,27 +77,65 @@ public class GroupLedgerService {
 	     }
 	 }
 	
-	 // 2. 카테고리 목록 조회
+	 // 카테고리 목록 조회
 	 public List<GroupCategoryDTO> getCategoryList(int groupNum) throws Exception {
 	     return GroupCategoryDAO.getInstance().getCategoryList(groupNum);
 	 }
 	
-	 // 3. 카테고리 등록
+	 // 카테고리 등록
 	 public boolean addCategory(int groupNum, String categoryName) throws Exception {
 	     validateCategoryName(categoryName);
 	     return GroupCategoryDAO.getInstance().insertCategory(groupNum, categoryName.trim());
 	 }
 	
-	 // 4. 카테고리 수정
+	 // 카테고리 수정
 	 public boolean editCategory(int groupNum, int categoryNum, String categoryName) throws Exception {
 	     validateCategoryName(categoryName);
 	     return GroupCategoryDAO.getInstance().updateCategory(groupNum, categoryNum, categoryName.trim());
 	 }
 	
-	 // 5. 카테고리 삭제 (미분류 이관 및 로그 기록)
+	 // 카테고리 삭제 (미분류 이관 및 로그 기록)
 	 public boolean removeCategory(int groupNum, int categoryNum, String categoryName, int actionUserNum) throws Exception {
 	     if ("미분류".equals(categoryName)) throw new Exception("기본 항목(미분류)은 삭제할 수 없습니다.");
 	     return GroupCategoryDAO.getInstance().deleteCategoryWithTransfer(groupNum, categoryNum, categoryName, actionUserNum);
 	 }
  
+	// [공통] 권한 검증 로직 (작성자 본인이거나 방장인지 확인)
+	 private void checkTransactionAuth(int originalUserNum, int actionUserNum, int groupOwnerNum) throws Exception {
+	     if (originalUserNum != actionUserNum && actionUserNum != groupOwnerNum) {
+	         throw new Exception("작성자 본인 또는 방장만 수정 및 삭제할 수 있습니다.");
+	     }
+	 }
+
+	 // 지출 내역 수정
+	 public boolean editTransaction(GroupTransactionDTO newDto, String newCatName, int actionUserNum, int groupOwnerNum) throws Exception {
+	     // 1. DB에 저장되어 있는 기존 내역 가져오기
+	     GroupTransactionDTO oldDto = GroupTransactionDAO.getInstance().getTransaction(newDto.getGtransNum());
+	     if (oldDto == null) {
+	         throw new Exception("존재하지 않거나 이미 삭제된 지출 내역입니다.");
+	     }
+	     
+	     // 2. 권한 검증 (백엔드 이중 방어)
+	     checkTransactionAuth(oldDto.getUserNum(), actionUserNum, groupOwnerNum);
+	     
+	     // 3. 트랜잭션 DAO 호출 (수정 및 로그 기록 동시 진행)
+	     return GroupTransactionDAO.getInstance()
+	             .updateTransactionWithLog(newDto, actionUserNum, oldDto.getCategoryName(), newCatName, oldDto.getTransAmount());
+	 }
+
+	 // 지출 내역 삭제
+	 public boolean removeTransaction(int gtransNum, int actionUserNum, int groupOwnerNum) throws Exception {
+	     // 1. 기존 내역 가져오기
+	     GroupTransactionDTO oldDto = GroupTransactionDAO.getInstance().getTransaction(gtransNum);
+	     if (oldDto == null) {
+	         throw new Exception("존재하지 않거나 이미 삭제된 지출 내역입니다.");
+	     }
+	     
+	     // 2. 권한 검증
+	     checkTransactionAuth(oldDto.getUserNum(), actionUserNum, groupOwnerNum);
+	     
+	     // 3. 트랜잭션 DAO 호출 (소프트 딜리트 및 로그 기록 동시 진행)
+	     return GroupTransactionDAO.getInstance()
+	             .deleteTransactionWithLog(gtransNum, actionUserNum, oldDto.getCategoryName(), oldDto.getTransAmount());
+	 }
 }

@@ -169,6 +169,33 @@
         </div>
     </div>
     
+    <!-- 추가: 지출 수정 모달창 -->
+    <div id="editExpenseModal" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 400px; z-index:1000;">
+        <h3 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 10px;">지출 내역 수정</h3>
+        <input type="hidden" id="editTransNum">
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">결제 날짜</label>
+            <input type="date" id="editExpDate" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;" required>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">카테고리</label>
+            <select id="editExpCategory" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;"></select>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">결제 금액 (원)</label>
+            <input type="number" id="editExpAmount" min="1" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;" required>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">메모 (선택)</label>
+            <input type="text" id="editExpMemo" maxlength="100" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;">
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button onclick="saveEditExpense()" style="flex:1; background:#ffc107; color:#333; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">수정완료</button>
+            <button onclick="closeEditExpenseModal()" style="flex:1; background:#6c757d; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">취소</button>
+        </div>
+    </div>
+    
     <script>
         function openSettingsModal() {
             document.getElementById('settingsModal').style.display = 'block';
@@ -439,26 +466,37 @@
         }
 
         /* 카테고리 목록 동적 로드 로직 */
+        /* 카테고리 목록 동적 로드 로직 */
         function fetchCategoryList() {
             const groupNum = '${group.groupNum}';
             
             fetch(`${pageContext.request.contextPath}/groupLedger/getCategoryList.do?groupNum=\${groupNum}`)
             .then(res => res.json())
             .then(data => {
-                // 1. 지출 등록 모달창의 Select 박스 업데이트
+                // 1. 등록 모달창 Select 박스
                 const select = document.getElementById('expCategory');
                 select.innerHTML = '';
                 
-                // 2. 카테고리 관리 모달창의 List 업데이트
+                // 🌟 2. 수정 모달창 Select 박스 (이 부분이 추가되었습니다!)
+                const editSelect = document.getElementById('editExpCategory');
+                editSelect.innerHTML = ''; 
+                
+                // 3. 카테고리 관리 모달창 List
                 const listArea = document.getElementById('categoryListArea');
                 listArea.innerHTML = '';
 
                 data.forEach(c => {
-                    // Select Option 생성
-                    let option = document.createElement('option');
-                    option.value = c.gcategoryNum;
-                    option.innerText = c.categoryName;
-                    select.appendChild(option);
+                    // Select Option 생성 (등록용)
+                    let option1 = document.createElement('option');
+                    option1.value = c.gcategoryNum;
+                    option1.innerText = c.categoryName;
+                    select.appendChild(option1);
+
+                    // 🌟 Select Option 생성 (수정용)
+                    let option2 = document.createElement('option');
+                    option2.value = c.gcategoryNum;
+                    option2.innerText = c.categoryName;
+                    editSelect.appendChild(option2);
 
                     // List Item 생성
                     let li = document.createElement('li');
@@ -551,11 +589,25 @@
 
             let html = `<ul style="list-style: none; padding: 0; margin: 0;">`;
             currentData.forEach(t => {
+                // 권한 체크: 작성자 본인 또는 방장일 때만 버튼 노출
+                let actionButtons = '';
+                if (t.userNum === currentUserNum || currentUserNum === groupOwnerNum) {
+                    // 따옴표 오류 방지를 위해 특수문자 치환하여 넘기기
+                    const safeMemo = t.transMemo ? t.transMemo.replace(/'/g, "\\'") : '';
+                    actionButtons = `
+                        <div style="margin-top: 8px;">
+                            <button onclick="openEditExpenseModal(\${t.gtransNum}, '\${t.transDate}', '\${t.categoryName}', \${t.transAmount}, '\${safeMemo}')" style="background:#ffc107; border:none; padding:4px 10px; border-radius:3px; font-size:0.85em; cursor:pointer; font-weight:bold; margin-right:5px;">수정</button>
+                            <button onclick="deleteTransaction(\${t.gtransNum})" style="background:#dc3545; color:white; border:none; padding:4px 10px; border-radius:3px; font-size:0.85em; cursor:pointer; font-weight:bold;">삭제</button>
+                        </div>
+                    `;
+                }
+
                 html += `
                     <li style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee;">
                         <div>
                             <strong style="font-size: 1.1em; display: block;">\${t.categoryName} - \${t.transMemo || '메모 없음'}</strong>
                             <span style="font-size: 0.85em; color: #888;">\${t.transDate} | 결제자: \${t.userNickname}</span>
+                            \${actionButtons}
                         </div>
                         <div style="font-size: 1.2em; font-weight: bold; color: #dc3545;">
                             \${t.transAmount.toLocaleString()} 원
@@ -623,6 +675,78 @@
             .catch(err => console.error('지출 등록 실패:', err));
         }
 
+     // 지출 내역 수정 모달 열기 (데이터 맵핑)
+        function openEditExpenseModal(transNum, date, catName, amount, memo) {
+            document.getElementById('editExpenseModal').style.display = 'block';
+            
+            const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split("T")[0];
+            document.getElementById('editExpDate').max = todayStr; 
+            
+            document.getElementById('editTransNum').value = transNum;
+            document.getElementById('editExpDate').value = date;
+            document.getElementById('editExpAmount').value = amount;
+            document.getElementById('editExpMemo').value = memo;
+            
+            // Select 박스에서 기존 카테고리명과 일치하는 옵션 자동 선택
+            const select = document.getElementById('editExpCategory');
+            for(let i=0; i<select.options.length; i++) {
+                if(select.options[i].text === catName) {
+                    select.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+        function closeEditExpenseModal() { document.getElementById('editExpenseModal').style.display = 'none'; }
+
+        // 지출 내역 수정 완료 처리
+        function saveEditExpense() {
+            const transNum = document.getElementById('editTransNum').value;
+            const date = document.getElementById('editExpDate').value;
+            const selectBox = document.getElementById('editExpCategory');
+            const categoryNum = selectBox.value;
+            const categoryName = selectBox.options[selectBox.selectedIndex].text; // 로그용 이름 추출
+            const amount = parseInt(document.getElementById('editExpAmount').value);
+            const memo = document.getElementById('editExpMemo').value.trim();
+
+            if (!date) { alert("날짜를 선택해주세요."); return; }
+            if (!amount || amount <= 0) { alert("결제 금액은 1원 이상이어야 합니다."); return; }
+
+            const params = new URLSearchParams({ 
+                gtransNum: transNum, 
+                groupOwnerNum: groupOwnerNum, // 전역 변수 활용
+                transDate: date, 
+                gcategoryNum: categoryNum, 
+                categoryName: categoryName,
+                transAmount: amount, 
+                transMemo: memo 
+            });
+
+            fetch('${pageContext.request.contextPath}/groupLedger/editTransaction.do', { method: 'POST', body: params })
+            .then(res => res.json()).then(data => {
+                if (data.success) { 
+                    alert(data.message); 
+                    closeEditExpenseModal(); 
+                    loadMonthData(document.getElementById('currentMonthLabel').innerText); 
+                } 
+                else { alert("오류: " + data.message); }
+            }).catch(err => console.error(err));
+        }
+
+        // 지출 내역 삭제 처리
+        function deleteTransaction(transNum) {
+            if(!confirm("이 지출 내역을 정말 삭제하시겠습니까? (삭제 로그가 기록됩니다)")) return;
+            
+            const params = new URLSearchParams({ gtransNum: transNum, groupOwnerNum: groupOwnerNum });
+            fetch('${pageContext.request.contextPath}/groupLedger/removeTransaction.do', { method: 'POST', body: params })
+            .then(res => res.json()).then(data => {
+                if (data.success) { 
+                    alert(data.message); 
+                    loadMonthData(document.getElementById('currentMonthLabel').innerText); 
+                } 
+                else { alert("오류: " + data.message); }
+            }).catch(err => console.error(err));
+        }
+        
         /* 카테고리 관리 스크립트 CRUD */
         function openCategoryModal() {
             document.getElementById('categoryManageModal').style.display = 'block';

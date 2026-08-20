@@ -63,4 +63,31 @@
 	    ]]>
 	</entry>
 	
+	<!-- 지출 단건 조회 (기존 데이터 확보용) -->
+	<entry key="getGroupTransaction">
+	    SELECT T.*, C.CATEGORY_NAME 
+	    FROM GROUP_TRANSACTIONS T JOIN GROUP_CATEGORIES C ON T.GCATEGORY_NUM = C.GCATEGORY_NUM
+	    WHERE T.GTRANS_NUM = ?
+	</entry>
+	
+	<!-- 지출 내역 수정 -->
+	<entry key="updateGroupTransaction">
+	    UPDATE GROUP_TRANSACTIONS 
+	    SET GCATEGORY_NUM = ?, TRANS_AMOUNT = ?, TRANS_DATE = TO_DATE(?, 'YYYY-MM-DD'), TRANS_MEMO = ? 
+	    WHERE GTRANS_NUM = ?
+	</entry>
+	
+	<!-- 지출 내역 삭제 (소프트 딜리트) -->
+	<entry key="deleteGroupTransaction">
+	    UPDATE GROUP_TRANSACTIONS SET USE_YN = 'N' WHERE GTRANS_NUM = ?
+	</entry>
+	
+	<!-- 히스토리 로그 기록 -->
+	<entry key="insertExpenseLog">
+	    INSERT INTO EXPENSE_LOGS (
+	        LOG_NUM, GTRANS_NUM, ACTION_USER_NUM, ACTION_TYPE, 
+	        BEFORE_AMOUNT, AFTER_AMOUNT, BEFORE_CATEGORY, AFTER_CATEGORY, CREATED_AT
+	    ) VALUES (SEQ_EXPENSE_LOGS.NEXTVAL, ?, ?, ?, ?, ?, ?, ?, SYSDATE)
+	</entry>
+
 </properties>
