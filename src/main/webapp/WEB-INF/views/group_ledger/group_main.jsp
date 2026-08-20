@@ -63,6 +63,8 @@
         <h3 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 10px;">방 설정 관리</h3>
         
         <input type="hidden" id="settingGroupNum" value="${group.groupNum}">
+        <!-- 🌟 현재 정산 노출 여부를 담아두는 hidden 값 -->
+        <input type="hidden" id="groupSettleUseYn" value="${group.settleUseYn}">
         
         <div style="margin-bottom: 15px;">
             <label style="display:block; font-weight:bold; margin-bottom:5px;">방 이름 (최대 20자)</label>
@@ -79,6 +81,15 @@
             <select id="settingGroupOpenYn" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
                 <option value="N" ${group.groupOpenYn == 'N' ? 'selected' : ''}>비공개 (초대 전용)</option>
                 <option value="Y" ${group.groupOpenYn == 'Y' ? 'selected' : ''}>공개 (검색 허용)</option>
+            </select>
+        </div>
+        
+        <!-- 🌟 정산 결과 노출 설정 (버튼들 위로 위치 이동!) -->
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">정산 결과 화면 노출</label>
+            <select id="settingSettleUseYn" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                <option value="Y" ${group.settleUseYn == 'Y' ? 'selected' : ''}>노출함 (1/N 정산 결과 표시)</option>
+                <option value="N" ${group.settleUseYn == 'N' ? 'selected' : ''}>노출 안 함 (지출 내역만 보관)</option>
             </select>
         </div>
         
@@ -251,6 +262,7 @@
             const name = document.getElementById('settingGroupName').value.trim();
             const desc = document.getElementById('settingGroupDesc').value.trim();
             const openYn = document.getElementById('settingGroupOpenYn').value;
+            const settleYn = document.getElementById('settingSettleUseYn').value; // 🌟 새로 추가된 값
 
             if (!name) { alert("방 이름을 입력해 주세요."); return; }
 
@@ -258,7 +270,8 @@
                 groupNum: num,
                 groupName: name,
                 groupDesc: desc,
-                groupOpenYn: openYn
+                groupOpenYn: openYn,
+                settleUseYn: settleYn // 🌟 서버로 같이 전송
             });
 
             fetch('${pageContext.request.contextPath}/group/updateSettings.do', {
@@ -271,6 +284,10 @@
                     alert(data.message);
                     document.getElementById('displayGroupName').innerText = name;
                     document.getElementById('displayGroupDesc').innerText = desc;
+                    
+                    // 🌟 화면단 hidden 값도 즉시 최신화 (새로고침 없이 바로 적용되게)
+                    document.getElementById('groupSettleUseYn').value = settleYn; 
+                    
                     closeSettingsModal();
                 } else {
                     alert("오류: " + data.message);
@@ -1004,21 +1021,31 @@
             .then(res => res.json())
             .then(data => {
                 
+                // 🌟 방 설정 상태 가져오기
+                const isSettleVisible = document.getElementById('groupSettleUseYn').value;
                 let snapHtml = '';
-                if(!data.snapshots || data.snapshots.length === 0) {
-                    snapHtml = '<li style="color:#666;">정산할 금액이 없습니다 (모두 0원)</li>';
+                
+                // 🌟 설정이 'N' 이면 데이터가 있어도 무시하고 안내 문구만 렌더링!
+                if (isSettleVisible === 'N') {
+                    snapHtml = '<li style="color:#888; font-style:italic; padding:10px 0;">🔒 방 설정에 의해 정산 결과가 비공개 처리되었습니다.</li>';
                 } else {
-                    data.snapshots.forEach(s => {
-                        snapHtml += `
-                            <li style="padding:8px 0; border-bottom:1px dashed #ccc; font-size:1.05em;">
-                                <b style="color:#dc3545;">\${s.payerNickname}</b> 님이 
-                                <b style="color:#28a745;">\${s.receiverNickname}</b> 님에게 
-                                <strong style="color:#333;">\${s.settleAmount.toLocaleString()}원</strong> 송금
-                            </li>`;
-                    });
+                    // 설정이 'Y' 이면 기존처럼 스냅샷 렌더링
+                    if(!data.snapshots || data.snapshots.length === 0) {
+                        snapHtml = '<li style="color:#666;">정산할 금액이 없습니다 (모두 0원)</li>';
+                    } else {
+                        data.snapshots.forEach(s => {
+                            snapHtml += `
+                                <li style="padding:8px 0; border-bottom:1px dashed #ccc; font-size:1.05em;">
+                                    <b style="color:#dc3545;">\${s.payerNickname}</b> 님이 
+                                    <b style="color:#28a745;">\${s.receiverNickname}</b> 님에게 
+                                    <strong style="color:#333;">\${s.settleAmount.toLocaleString()}원</strong> 송금
+                                </li>`;
+                        });
+                    }
                 }
                 document.getElementById('snapshotList').innerHTML = snapHtml;
                 
+                // --- 아래 지출 내역(transHtml) 렌더링 코드는 기존과 완벽하게 동일하게 유지 ---
                 let transHtml = '';
                 if(!data.transactions || data.transactions.length === 0) {
                     transHtml = '<li style="padding:20px; text-align:center; color:#888;">지출 내역이 없습니다.</li>';

@@ -116,8 +116,9 @@ public class GroupDAO {
             pstmt.setString(1, dto.getGroupName());
             pstmt.setString(2, dto.getGroupDesc());
             pstmt.setString(3, dto.getGroupOpenYn());
-            pstmt.setInt(4, dto.getGroupNum());
-            pstmt.setInt(5, dto.getGroupOwnerNum());
+            pstmt.setString(4, dto.getSettleUseYn()); // 🌟 추가됨
+            pstmt.setInt(5, dto.getGroupNum());
+            pstmt.setInt(6, dto.getGroupOwnerNum());
             
             return pstmt.executeUpdate() > 0;
         }
@@ -141,6 +142,7 @@ public class GroupDAO {
                     dto.setGroupType(rs.getString("GROUP_TYPE"));
                     dto.setGroupOwnerNum(rs.getInt("GROUP_OWNER_NUM"));
                     dto.setGroupOpenYn(rs.getString("GROUP_OPEN_YN"));
+                    dto.setSettleUseYn(rs.getString("SETTLE_USE_YN")); // 🌟 추가됨
                     dto.setCreatedAt(rs.getString("CREATED_AT"));
                 }
             }
@@ -320,5 +322,5 @@ public class GroupDAO {
         }
         return list;
     }
-    
+   
 }

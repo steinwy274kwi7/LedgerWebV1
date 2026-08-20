@@ -231,4 +231,24 @@
 	    ]]>
 	</entry>
 
+	<!-- 1. 그룹 설정 업데이트 쿼리 수정 -->
+	<entry key="updateGroupSettings">
+	    UPDATE GROUPS 
+	    SET GROUP_NAME = ?, 
+	        GROUP_DESC = ?, 
+	        GROUP_OPEN_YN = ?,
+	        SETTLE_USE_YN = ?
+	    WHERE GROUP_NUM = ? AND GROUP_OWNER_NUM = ?
+	</entry>
+	
+	<!-- 2. 특정 그룹정보 가져오기 쿼리 수정 (SELECT 절에 SETTLE_USE_YN 추가) -->
+	<entry key="getGroupInfo">
+	    SELECT 
+	        GROUP_NUM, GROUP_NAME, GROUP_DESC, GROUP_TYPE, 
+	        GROUP_OWNER_NUM, GROUP_OPEN_YN, SETTLE_USE_YN, 
+	        TO_CHAR(CREATED_AT, 'YYYY-MM-DD') AS CREATED_AT
+	    FROM GROUPS
+	    WHERE GROUP_NUM = ?
+	</entry>
+
 </properties>

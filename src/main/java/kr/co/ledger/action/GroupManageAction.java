@@ -173,6 +173,8 @@ public class GroupManageAction implements Action {
             dto.setGroupName(request.getParameter("groupName").trim());
             dto.setGroupDesc(request.getParameter("groupDesc"));
             dto.setGroupOpenYn(request.getParameter("groupOpenYn"));
+            dto.setSettleUseYn(request.getParameter("settleUseYn")); 
+            
             dto.setGroupOwnerNum(loginUser.getUserNum());
 
             if (dto.getGroupName().isEmpty() || dto.getGroupName().length() > 20) {
