@@ -90,4 +90,20 @@ public class GroupTransactionDAO {
         return list;
     }
     
+    // 공동 지출 내역 등록
+    public boolean insertTransaction(GroupTransactionDTO dto) throws Exception {
+        String sql = SqlManager.getSql("insertGroupTransaction");
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, dto.getGroupNum());
+            pstmt.setInt(2, dto.getGroupNum()); // 서브쿼리용
+            pstmt.setInt(3, dto.getGcategoryNum());
+            pstmt.setInt(4, dto.getUserNum());  // 세션에서 가져온 본인 번호
+            pstmt.setLong(5, dto.getTransAmount());
+            pstmt.setString(6, dto.getTransDate());
+            pstmt.setString(7, dto.getTransMemo());
+            
+            int count = pstmt.executeUpdate();
+            return count > 0;
+        }
+    }
 }

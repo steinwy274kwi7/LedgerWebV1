@@ -42,4 +42,25 @@
 	    ]]>
 	</entry>
 
+	<!-- 공동 지출 내역 등록 -->
+	<entry key="insertGroupTransaction">
+	    <![CDATA[
+	    INSERT INTO GROUP_TRANSACTIONS (
+	        GTRANS_NUM, GROUP_NUM, PERIOD_NUM, GCATEGORY_NUM, USER_NUM, 
+	        TRANS_AMOUNT, TRANS_DATE, TRANS_MEMO, USE_YN, CREATED_AT
+	    ) VALUES (
+	        SEQ_GROUP_TRANSACTIONS.NEXTVAL, 
+	        ?, 
+	        (SELECT MAX(PERIOD_NUM) FROM LEDGER_PERIODS WHERE GROUP_NUM = ? AND PERIOD_STATUS = 'O'), 
+	        ?, 
+	        ?, 
+	        ?, 
+	        TO_DATE(?, 'YYYY-MM-DD'), 
+	        ?, 
+	        'Y', 
+	        SYSDATE
+	    )
+	    ]]>
+	</entry>
+	
 </properties>

@@ -1,4 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
+
+<!-- 카테고리 등록 -->
+<entry key="insertCategory">
+    INSERT INTO GROUP_CATEGORIES (GCATEGORY_NUM, GROUP_NUM, CATEGORY_NAME, IS_DEFAULT_YN, USE_YN, CREATED_AT)
+    VALUES (SEQ_GROUP_CATEGORIES.NEXTVAL, ?, ?, 'N', 'Y', SYSDATE)
+</entry>
+
+<!-- 카테고리 수정 -->
+<entry key="updateCategory">
+    UPDATE GROUP_CATEGORIES SET CATEGORY_NAME = ? 
+    WHERE GCATEGORY_NUM = ? AND GROUP_NUM = ? AND IS_DEFAULT_YN = 'N'
+</entry>
+
+<!-- '미분류' 카테고리 번호 찾기 -->
+<entry key="getUncategorizedNum">
+    SELECT GCATEGORY_NUM FROM GROUP_CATEGORIES 
+    WHERE GROUP_NUM = ? AND CATEGORY_NAME = '미분류'
+</entry>
+
+<!-- 삭제 전: 기존 지출 내역을 EXPENSE_LOGS에 업데이트 로그로 기록 -->
+<entry key="insertTransferLogs">
+    INSERT INTO EXPENSE_LOGS (
+        LOG_NUM, GTRANS_NUM, ACTION_USER_NUM, ACTION_TYPE, 
+        BEFORE_AMOUNT, AFTER_AMOUNT, BEFORE_CATEGORY, AFTER_CATEGORY, CREATED_AT
+    )
+    SELECT 
+        SEQ_EXPENSE_LOGS.NEXTVAL, GTRANS_NUM, ?, 'U', 
+        TRANS_AMOUNT, TRANS_AMOUNT, ?, '미분류', SYSDATE
+    FROM GROUP_TRANSACTIONS 
+    WHERE GCATEGORY_NUM = ?
+</entry>
+
+<!-- 삭제 중: 기존 지출 내역의 카테고리를 '미분류'로 업데이트 -->
+<entry key="transferTransactions">
+    UPDATE GROUP_TRANSACTIONS SET GCATEGORY_NUM = ? 
+    WHERE GCATEGORY_NUM = ?
+</entry>
+
+<!-- 삭제 완료: 카테고리 소프트 삭제 -->
+<entry key="deleteCategory">
+    UPDATE GROUP_CATEGORIES SET USE_YN = 'N' 
+    WHERE GCATEGORY_NUM = ? AND GROUP_NUM = ? AND IS_DEFAULT_YN = 'N'
+</entry>
+
+<!-- 특정 그룹의 카테고리 목록 조회 -->
+<entry key="getGroupCategories">
+    <![CDATA[
+    SELECT GCATEGORY_NUM, CATEGORY_NAME 
+    FROM GROUP_CATEGORIES 
+    WHERE GROUP_NUM = ? AND USE_YN = 'Y' 
+    ORDER BY GCATEGORY_NUM ASC
+    ]]>
+</entry>
+
 </properties>

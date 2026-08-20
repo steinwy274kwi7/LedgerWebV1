@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.co.ledger.dao.GroupDAO;
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.GroupCategoryDTO;
 import kr.co.ledger.dto.GroupDTO;
 import kr.co.ledger.dto.GroupTransactionDTO;
 import kr.co.ledger.dto.TrendDTO;
@@ -29,6 +30,11 @@ public class GroupLedgerAction implements Action {
             case "getTrendData" 		-> getTrendData(request, response);
             case "ledger" 				-> getGroupLedgerMain(request, response);
             case "getTransactions" 		-> getMonthlyTransactions(request, response);
+            case "insert"  				-> insertTransaction(request, response);
+            case "getCategoryList" 		-> getCategoryList(request, response);
+            case "addCategory"     		-> addCategory(request, response);
+            case "editCategory"    		-> editCategory(request, response);
+            case "removeCategory"  		-> removeCategory(request, response);
             default -> throw new IllegalArgumentException("GroupLedgerAction에 없는 기능: " + command);
         };
     }
@@ -184,4 +190,110 @@ public class GroupLedgerAction implements Action {
         }
         return null;
     }
+    
+    // 공동 지출 내역 등록 (AJAX)
+    private String insertTransaction(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        try {
+            // 세션에서 현재 로그인한 유저 정보 가져오기 (결제자 고정)
+            UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+            if (loginUser == null) throw new Exception("로그인이 필요합니다.");
+
+            GroupTransactionDTO dto = new GroupTransactionDTO();
+            dto.setGroupNum(Integer.parseInt(request.getParameter("groupNum")));
+            dto.setGcategoryNum(Integer.parseInt(request.getParameter("gcategoryNum")));
+            dto.setTransAmount(Long.parseLong(request.getParameter("transAmount")));
+            dto.setTransDate(request.getParameter("transDate"));
+            dto.setTransMemo(request.getParameter("transMemo"));
+            dto.setUserNum(loginUser.getUserNum()); // 결제자는 본인으로 강제 고정!
+
+            boolean isSuccess = GroupLedgerService.getInstance().insertTransaction(dto);
+            
+            if (isSuccess) {
+                out.print("{\"success\": true, \"message\": \"지출 내역이 등록되었습니다.\"}");
+            } else {
+                out.print("{\"success\": false, \"message\": \"등록에 실패했습니다.\"}");
+            }
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally {
+            out.flush();
+        }
+        return null;
+    }
+    
+    // [카테고리 목록 불러오기]
+    private String getCategoryList(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            List<GroupCategoryDTO> list = GroupLedgerService.getInstance().getCategoryList(groupNum);
+            
+            StringBuilder json = new StringBuilder("[");
+            for (int i = 0; i < list.size(); i++) {
+                GroupCategoryDTO dto = list.get(i);
+                json.append(String.format("{\"gcategoryNum\":%d, \"categoryName\":\"%s\"}", dto.getGcategoryNum(), dto.getCategoryName()));
+                if (i < list.size() - 1) json.append(",");
+            }
+            json.append("]");
+            out.print(json.toString());
+        } catch (Exception e) { out.print("[]"); } 
+        finally { out.flush(); }
+        return null;
+    }
+
+    // [카테고리 등록]
+    private String addCategory(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            String name = request.getParameter("categoryName");
+            
+            GroupLedgerService.getInstance().addCategory(groupNum, name);
+            out.print("{\"success\": true, \"message\": \"카테고리가 등록되었습니다.\"}");
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally { out.flush(); }
+        return null;
+    }
+
+    // [카테고리 수정]
+    private String editCategory(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            int categoryNum = Integer.parseInt(request.getParameter("categoryNum"));
+            String name = request.getParameter("categoryName");
+            
+            GroupLedgerService.getInstance().editCategory(groupNum, categoryNum, name);
+            out.print("{\"success\": true, \"message\": \"카테고리가 수정되었습니다.\"}");
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally { out.flush(); }
+        return null;
+    }
+
+    // [카테고리 삭제]
+    private String removeCategory(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        try {
+            UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            int categoryNum = Integer.parseInt(request.getParameter("categoryNum"));
+            String categoryName = request.getParameter("categoryName");
+            
+            GroupLedgerService.getInstance().removeCategory(groupNum, categoryNum, categoryName, loginUser.getUserNum());
+            out.print("{\"success\": true, \"message\": \"삭제 완료! 관련 지출 내역은 '미분류'로 자동 이관되었습니다.\"}");
+        } catch (Exception e) {
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally { out.flush(); }
+        return null;
+    }
+    
 }
