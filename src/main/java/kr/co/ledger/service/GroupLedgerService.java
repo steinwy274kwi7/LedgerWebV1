@@ -4,6 +4,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.ExpenseLogDTO;
 import kr.co.ledger.dto.GroupCategoryDTO;
 import kr.co.ledger.dto.GroupTransactionDTO;
 import kr.co.ledger.dto.TrendDTO;
@@ -94,11 +95,18 @@ public class GroupLedgerService {
 	     return GroupCategoryDAO.getInstance().updateCategory(groupNum, categoryNum, categoryName.trim());
 	 }
 	
-	 // 카테고리 삭제 (미분류 이관 및 로그 기록)
-	 public boolean removeCategory(int groupNum, int categoryNum, String categoryName, int actionUserNum) throws Exception {
-	     if ("미분류".equals(categoryName)) throw new Exception("기본 항목(미분류)은 삭제할 수 없습니다.");
-	     return GroupCategoryDAO.getInstance().deleteCategoryWithTransfer(groupNum, categoryNum, categoryName, actionUserNum);
-	 }
+	// 카테고리 삭제 (미분류 이관 및 벌크 로그 기록)
+	    public boolean removeCategory(int groupNum, int categoryNum, String categoryName, int actionUserNum) throws Exception {
+	        if ("미분류".equals(categoryName)) {
+	            throw new Exception("기본 항목(미분류)은 삭제할 수 없습니다.");
+	        }
+	        
+	        // 벌크 인서트는 (카테고리 삭제/이관이 실행되기 '직전'에 호출)
+	        GroupTransactionDAO.getInstance().insertBulkLogForCategoryDelete(categoryNum, categoryName, actionUserNum);
+	        
+	        // 그 후 기존처럼 카테고리 삭제(이관) 진행
+	        return GroupCategoryDAO.getInstance().deleteCategoryWithTransfer(groupNum, categoryNum, categoryName, actionUserNum);
+	    }
  
 	// [공통] 권한 검증 로직 (작성자 본인이거나 방장인지 확인)
 	 private void checkTransactionAuth(int originalUserNum, int actionUserNum, int groupOwnerNum) throws Exception {
@@ -125,17 +133,22 @@ public class GroupLedgerService {
 
 	 // 지출 내역 삭제
 	 public boolean removeTransaction(int gtransNum, int actionUserNum, int groupOwnerNum) throws Exception {
-	     // 1. 기존 내역 가져오기
-	     GroupTransactionDTO oldDto = GroupTransactionDAO.getInstance().getTransaction(gtransNum);
-	     if (oldDto == null) {
-	         throw new Exception("존재하지 않거나 이미 삭제된 지출 내역입니다.");
-	     }
-	     
-	     // 2. 권한 검증
-	     checkTransactionAuth(oldDto.getUserNum(), actionUserNum, groupOwnerNum);
-	     
-	     // 3. 트랜잭션 DAO 호출 (소프트 딜리트 및 로그 기록 동시 진행)
-	     return GroupTransactionDAO.getInstance()
-	             .deleteTransactionWithLog(gtransNum, actionUserNum, oldDto.getCategoryName(), oldDto.getTransAmount());
-	 }
+	        // 1. 기존 내역 가져오기
+	        GroupTransactionDTO oldDto = GroupTransactionDAO.getInstance().getTransaction(gtransNum);
+	        if (oldDto == null) {
+	            throw new Exception("존재하지 않거나 이미 삭제된 지출 내역입니다.");
+	        }
+	        
+	        // 2. 권한 검증
+	        checkTransactionAuth(oldDto.getUserNum(), actionUserNum, groupOwnerNum);
+	        
+	        // 3. 트랜잭션 DAO 호출 (소프트 딜리트 및 단건 로그 기록 동시 진행)
+	        return GroupTransactionDAO.getInstance()
+	                .deleteTransactionWithLog(gtransNum, actionUserNum, oldDto.getCategoryName(), oldDto.getTransAmount());
+	    }
+	 
+	 	// 이력 조회 메서드
+	    public List<ExpenseLogDTO> getExpenseLogs(int groupNum) throws Exception {
+	        return GroupTransactionDAO.getInstance().getExpenseLogs(groupNum);
+	    }
 }

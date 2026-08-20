@@ -25,10 +25,9 @@
         <!-- 지출 등록 & 카테고리 관리 버튼 (멤버에게만 노출) -->
         <c:if test="${isMember}">
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px;">
-                <!-- 추가 시작: 카테고리 관리 버튼 -->
                 <button onclick="openCategoryModal()" style="padding: 10px 20px; background: #6f42c1; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🏷️ 카테고리 관리</button>
-                <!-- 추가 끝 -->
                 <button onclick="openExpenseModal()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">+ 지출 등록</button>
+                <button onclick="openLogModal()" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">📜 무결성 변경 이력</button>
             </div>
         </c:if>
 
@@ -169,7 +168,7 @@
         </div>
     </div>
     
-    <!-- 추가: 지출 수정 모달창 -->
+    <!-- 지출 수정 모달창 -->
     <div id="editExpenseModal" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 400px; z-index:1000;">
         <h3 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 10px;">지출 내역 수정</h3>
         <input type="hidden" id="editTransNum">
@@ -194,6 +193,17 @@
             <button onclick="saveEditExpense()" style="flex:1; background:#ffc107; color:#333; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">수정완료</button>
             <button onclick="closeEditExpenseModal()" style="flex:1; background:#6c757d; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">취소</button>
         </div>
+    </div>
+    
+    <!-- 무결성 변경 이력 모달창 (Read-Only) -->
+    <div id="logModal" style="display:none; position:fixed; top:10%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 500px; z-index:1000; max-height: 80vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <h3 style="margin: 0;">무결성 변경 이력 <span style="font-size: 0.6em; color: #dc3545; font-weight: normal;">(Read-Only)</span></h3>
+            <button onclick="document.getElementById('logModal').style.display='none'" style="background: none; border: none; font-size: 1.2em; cursor: pointer;">X</button>
+        </div>
+        <ul id="logListArea" style="list-style: none; padding: 0; margin-top: 15px;">
+            <!-- JS로 렌더링 됩니다 -->
+        </ul>
     </div>
     
     <script>
@@ -477,7 +487,7 @@
                 const select = document.getElementById('expCategory');
                 select.innerHTML = '';
                 
-                // 🌟 2. 수정 모달창 Select 박스 (이 부분이 추가되었습니다!)
+                // 2. 수정 모달창 Select 박스
                 const editSelect = document.getElementById('editExpCategory');
                 editSelect.innerHTML = ''; 
                 
@@ -527,7 +537,7 @@
             const currentYearMonth = `\${yyyy}-\${mm}`;
             
             loadMonthData(currentYearMonth); 
-            fetchCategoryList(); /* 추가: 화면 로드 시 카테고리 목록 불러오기 */
+            fetchCategoryList(); /* 화면 로드 시 카테고리 목록 불러오기 */
         };
         
         // 달력 뷰 그리기 (renderCalendar)
@@ -823,6 +833,54 @@
                     alert("오류: " + data.message);
                 }
             }).catch(err => console.error('카테고리 삭제 실패:', err));
+        }
+        
+     // 변경 이력 모달 오픈 및 데이터 통신 렌더링
+        function openLogModal() {
+            document.getElementById('logModal').style.display = 'block';
+            
+            const groupNum = document.getElementById('settingGroupNum').value;
+            
+            fetch(`${pageContext.request.contextPath}/groupLedger/getLogs.do?groupNum=\${groupNum}`)
+            .then(res => res.json())
+            .then(data => {
+                const area = document.getElementById('logListArea');
+                
+                if (data.length === 0) {
+                    area.innerHTML = '<li style="text-align:center; padding:30px; color:#888;">아직 기록된 변경 이력이 없습니다.</li>';
+                    return;
+                }
+                
+                let html = '';
+                data.forEach(log => {
+                    let logMessage = '';
+                    
+                    // U(수정 및 카테고리 이관), D(삭제) 분기 처리하여 예쁘게 포맷팅
+                    if (log.actionType === 'U') {
+                        logMessage = `[수정] <b style="color:#ffc107;">\${log.beforeCategory} (\${log.beforeAmount.toLocaleString()}원)</b> ➔ 
+                                      <b style="color:#28a745;">\${log.afterCategory} (\${log.afterAmount.toLocaleString()}원)</b>`;
+                    } else if (log.actionType === 'D') {
+                        logMessage = `[삭제] <b style="color:#dc3545;">\${log.beforeCategory} (\${log.beforeAmount.toLocaleString()}원)</b> 내역 영구 삭제`;
+                    }
+
+                    const memoDisplay = log.transMemo ? log.transMemo : '메모 없음';
+
+                    html += `
+                        <li style="padding: 12px 10px; border-bottom: 1px solid #f0f0f0;">
+                            <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">
+                                \${log.createdAtStr} | 행위자: <b>\${log.userNickname}</b> 
+                                (메모: \${memoDisplay})
+                            </div>
+                            <div style="font-size: 0.95em; line-height: 1.4;">
+                                \${logMessage}
+                            </div>
+                        </li>
+                    `;
+                });
+                
+                area.innerHTML = html;
+            })
+            .catch(err => console.error('이력 로드 실패:', err));
         }
     </script>
 </body>

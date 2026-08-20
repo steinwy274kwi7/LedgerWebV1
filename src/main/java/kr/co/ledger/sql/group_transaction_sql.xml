@@ -89,5 +89,35 @@
 	        BEFORE_AMOUNT, AFTER_AMOUNT, BEFORE_CATEGORY, AFTER_CATEGORY, CREATED_AT
 	    ) VALUES (SEQ_EXPENSE_LOGS.NEXTVAL, ?, ?, ?, ?, ?, ?, ?, SYSDATE)
 	</entry>
+	
+	<!-- 그룹 내 전체 지출 변경 이력 조회 (최신순) -->
+	<entry key="getExpenseLogs">
+	    <![CDATA[
+	    SELECT L.LOG_NUM, L.GTRANS_NUM, L.ACTION_USER_NUM, L.ACTION_TYPE, 
+	           L.BEFORE_AMOUNT, L.AFTER_AMOUNT, L.BEFORE_CATEGORY, L.AFTER_CATEGORY, 
+	           TO_CHAR(L.CREATED_AT, 'YYYY-MM-DD HH24:MI') AS CREATED_AT_STR,
+	           U.USER_NICKNAME, 
+	           T.TRANS_MEMO
+	    FROM EXPENSE_LOGS L
+	    JOIN GROUP_TRANSACTIONS T ON L.GTRANS_NUM = T.GTRANS_NUM
+	    JOIN USERS U ON L.ACTION_USER_NUM = U.USER_NUM
+	    WHERE T.GROUP_NUM = ?
+	    ORDER BY L.CREATED_AT DESC
+	    ]]>
+	</entry>
+	
+	<!-- 카테고리 삭제 시 벌크 인서트 (해당 카테고리 내역을 전부 미분류로 로그 남김) -->
+	<entry key="insertBulkLogForCategoryDelete">
+	    <![CDATA[
+	    INSERT INTO EXPENSE_LOGS (
+	        LOG_NUM, GTRANS_NUM, ACTION_USER_NUM, ACTION_TYPE, 
+	        BEFORE_AMOUNT, AFTER_AMOUNT, BEFORE_CATEGORY, AFTER_CATEGORY, CREATED_AT
+	    )
+	    SELECT SEQ_EXPENSE_LOGS.NEXTVAL, GTRANS_NUM, ?, 'U', 
+	           TRANS_AMOUNT, TRANS_AMOUNT, ?, '미분류', SYSDATE
+	    FROM GROUP_TRANSACTIONS
+	    WHERE GCATEGORY_NUM = ? AND USE_YN = 'Y'
+	    ]]>
+	</entry>
 
 </properties>

@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.co.ledger.dao.GroupDAO;
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.ExpenseLogDTO;
 import kr.co.ledger.dto.GroupCategoryDTO;
 import kr.co.ledger.dto.GroupDTO;
 import kr.co.ledger.dto.GroupTransactionDTO;
@@ -37,6 +38,7 @@ public class GroupLedgerAction implements Action {
             case "removeCategory"  		-> removeCategory(request, response);
             case "editTransaction"   	-> editTransaction(request, response);
             case "removeTransaction" 	-> removeTransaction(request, response);
+            case "getLogs" 				-> getLogs(request, response);
             default -> throw new IllegalArgumentException("GroupLedgerAction에 없는 기능: " + command);
         };
     }
@@ -342,6 +344,53 @@ public class GroupLedgerAction implements Action {
         } catch (Exception e) {
             out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
         } finally { out.flush(); }
+        return null;
+    }
+    
+    
+    // [변경 이력 조회 API]
+    private String getLogs(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            List<ExpenseLogDTO> list = GroupLedgerService.getInstance().getExpenseLogs(groupNum);
+            
+            StringBuilder json = new StringBuilder("[");
+            for (int i = 0; i < list.size(); i++) {
+                ExpenseLogDTO dto = list.get(i);
+                
+                // 삭제('D') 시 null이 되는 필드들을 JSON 포맷에 맞게 안전하게 치환
+                String afterAmtStr = (dto.getAfterAmount() == null) ? "null" : String.valueOf(dto.getAfterAmount());
+                String afterCatStr = (dto.getAfterCategory() == null) ? "null" : "\"" + dto.getAfterCategory() + "\"";
+                
+                // 메모에 쌍따옴표나 줄바꿈이 있으면 JSON 파싱 에러가 나므로 이스케이프 처리
+                String safeMemo = dto.getTransMemo() != null ? dto.getTransMemo().replace("\"", "\\\"").replace("\n", " ") : "";
+                
+                json.append("{");
+                json.append("\"logNum\":").append(dto.getLogNum()).append(",");
+                json.append("\"actionType\":\"").append(dto.getActionType()).append("\",");
+                json.append("\"beforeAmount\":").append(dto.getBeforeAmount()).append(",");
+                json.append("\"afterAmount\":").append(afterAmtStr).append(",");
+                json.append("\"beforeCategory\":\"").append(dto.getBeforeCategory()).append("\",");
+                json.append("\"afterCategory\":").append(afterCatStr).append(",");
+                json.append("\"createdAtStr\":\"").append(dto.getCreatedAtStr()).append("\",");
+                json.append("\"userNickname\":\"").append(dto.getUserNickname()).append("\",");
+                json.append("\"transMemo\":\"").append(safeMemo).append("\"");
+                json.append("}");
+                
+                if (i < list.size() - 1) json.append(",");
+            }
+            json.append("]");
+            
+            out.print(json.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+            out.print("[]");
+        } finally {
+            out.flush();
+        }
         return null;
     }
     
