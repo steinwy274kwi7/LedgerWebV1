@@ -167,4 +167,22 @@
 	    ]]>
 	</entry>
 
+	<!-- 그룹 달력 리스트 뷰 보기 -->
+	<entry key="getMonthlyGroupTransactions">
+	    <![CDATA[
+	    SELECT 
+	        T.GTRANS_NUM, T.GROUP_NUM, T.TRANS_AMOUNT, 
+	        TO_CHAR(T.TRANS_DATE, 'YYYY-MM-DD') AS TRANS_DATE,
+	        T.TRANS_MEMO, T.USER_NUM, U.USER_NICKNAME,
+	        C.CATEGORY_NAME
+	    FROM GROUP_TRANSACTIONS T
+	    JOIN USERS U ON T.USER_NUM = U.USER_NUM
+	    JOIN GROUP_CATEGORIES C ON T.GCATEGORY_NUM = C.GCATEGORY_NUM
+	    WHERE T.GROUP_NUM = ? 
+	      AND TO_CHAR(T.TRANS_DATE, 'YYYY-MM') = ?
+	      AND T.USE_YN = 'Y'
+	    ORDER BY T.TRANS_DATE DESC, T.GTRANS_NUM DESC
+	    ]]>
+	</entry>
+
 </properties>

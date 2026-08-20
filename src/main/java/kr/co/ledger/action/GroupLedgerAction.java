@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import kr.co.ledger.dao.GroupDAO;
 import kr.co.ledger.dto.ChartDTO;
 import kr.co.ledger.dto.GroupDTO;
+import kr.co.ledger.dto.GroupTransactionDTO;
 import kr.co.ledger.dto.TrendDTO;
 import kr.co.ledger.dto.UserDTO;
 import kr.co.ledger.service.GroupLedgerService;
@@ -27,6 +28,7 @@ public class GroupLedgerAction implements Action {
             case "getCategoryChartData" -> getCategoryChartData(request, response);
             case "getTrendData" 		-> getTrendData(request, response);
             case "ledger" 				-> getGroupLedgerMain(request, response);
+            case "getTransactions" 		-> getMonthlyTransactions(request, response);
             default -> throw new IllegalArgumentException("GroupLedgerAction에 없는 기능: " + command);
         };
     }
@@ -149,4 +151,37 @@ public class GroupLedgerAction implements Action {
         return "/views/group_ledger/group_main.jsp";
     }
     
+    // 그룹 달력 리스트 뷰 보기 (AJAX)
+    private String getMonthlyTransactions(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            String yearMonth = request.getParameter("yearMonth"); // 예: "2023-10"
+            
+            // 4단계에서 만든 서비스 메서드 호출
+            List<GroupTransactionDTO> list = GroupLedgerService.getInstance().getMonthlyTransactions(groupNum, yearMonth);
+            
+            // JSON 배열로 직접 조립해서 반환
+            StringBuilder json = new StringBuilder("[");
+            for (int i = 0; i < list.size(); i++) {
+                GroupTransactionDTO dto = list.get(i);
+                json.append(String.format(
+                    "{\"gtransNum\":%d, \"userNum\":%d, \"userNickname\":\"%s\", \"categoryName\":\"%s\", \"transAmount\":%d, \"transDate\":\"%s\", \"transMemo\":\"%s\"}",
+                    dto.getGtransNum(), dto.getUserNum(), dto.getUserNickname(), 
+                    dto.getCategoryName(), dto.getTransAmount(), dto.getTransDate(), dto.getTransMemo()
+                ));
+                if (i < list.size() - 1) json.append(",");
+            }
+            json.append("]");
+            
+            out.print(json.toString());
+        } catch (Exception e) {
+            out.print("[]");
+        } finally {
+            out.flush();
+        }
+        return null;
+    }
 }

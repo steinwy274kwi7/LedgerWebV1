@@ -12,8 +12,26 @@ public class GroupTransactionDTO {
     private String transMemo;
     private String useYn;
     private String createdAt;
+    private String userNickname;
+    private String categoryName;
 
-    public GroupTransactionDTO() {}
+    public String getUserNickname() {
+		return userNickname;
+	}
+
+	public void setUserNickname(String userNickname) {
+		this.userNickname = userNickname;
+	}
+
+	public String getCategoryName() {
+		return categoryName;
+	}
+
+	public void setCategoryName(String categoryName) {
+		this.categoryName = categoryName;
+	}
+
+	public GroupTransactionDTO() {}
 
 	public int getGtransNum() {
 		return gtransNum;

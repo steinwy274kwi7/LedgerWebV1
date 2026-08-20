@@ -4,6 +4,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import kr.co.ledger.dto.ChartDTO;
+import kr.co.ledger.dto.GroupTransactionDTO;
 import kr.co.ledger.dto.TrendDTO;
 import kr.co.ledger.dao.GroupTransactionDAO;
 
@@ -42,6 +43,14 @@ public class GroupLedgerService {
             resultList.add(dto);
         }
         return resultList;
+    }
+    
+    // 그룹 달력 리스트 뷰 보기
+    public List<GroupTransactionDTO> getMonthlyTransactions(int groupNum, String yearMonth) throws Exception {
+        if (yearMonth == null || yearMonth.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return GroupTransactionDAO.getInstance().getMonthlyTransactions(groupNum, yearMonth);
     }
     
 }

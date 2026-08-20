@@ -22,6 +22,21 @@
 
         <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;">
 
+        <!-- 상단 토글 버튼 -->
+        <div style="text-align:center; margin-bottom: 20px;">
+            <button onclick="switchView('calendar')" style="padding:10px 20px; background:#007BFF; color:white; border:none; border-radius:5px; cursor:pointer;">달력 뷰</button>
+            <button onclick="switchView('list')" style="padding:10px 20px; background:#6c757d; color:white; border:none; border-radius:5px; cursor:pointer;">리스트 뷰</button>
+        </div>
+
+        <!-- 뷰 영역 (한 번에 하나만 보임) -->
+        <div id="calendarView" style="display:block;">
+            <h3 id="currentMonthLabel" style="text-align:center;"></h3>
+            <!-- 여기에 자바스크립트로 달력 그리드를 그릴 예정입니다 -->
+        </div>
+        <div id="listView" style="display:none;">
+            <!-- 여기에 자바스크립트로 리스트를 그릴 예정입니다 -->
+        </div>
+
     </div> <!-- // container 끝 -->
 
     <!-- 2. 설정 모달창 (평소엔 숨김) -->
@@ -304,7 +319,7 @@
             .catch(err => console.error('탈퇴 실패:', err));
         }
         
-     // 🌟 방장 수동 위임 처리 (새로고침 없는 실시간 버전)
+     	// 방장 수동 위임 처리 (새로고침 없는 실시간 버전)
         function transferOwner(targetUserNum, targetNickname) {
             if (!confirm(targetNickname + " 님에게 방장 권한을 넘겨주시겠습니까?\n(위임 즉시 본인은 일반 멤버로 전환되며, 더 이상 방 설정 및 강퇴가 불가능합니다.)")) {
                 return;
@@ -338,6 +353,141 @@
             .catch(err => console.error('위임 실패:', err));
         }
      
+        // 백엔드에서 가져온 데이터를 저장해둘 전역 변수 (이 데이터 하나로 달력도 그리고 리스트도 그립니다!)
+        let currentData = []; 
+
+        function switchView(type) {
+            // 화면 숨김/표시 처리
+            document.getElementById('calendarView').style.display = (type === 'calendar') ? 'block' : 'none';
+            document.getElementById('listView').style.display = (type === 'list') ? 'block' : 'none';
+            
+            // 추후 구현할 실제 화면 그리기 함수 호출
+            if(type === 'calendar') renderCalendar();
+            if(type === 'list') renderList();
+        }
+
+        function loadMonthData(yearMonth) {
+            const groupNum = '${group.groupNum}'; // 현재 방 번호
+            
+            // 백엔드에 1번만 요청!
+            fetch(`${pageContext.request.contextPath}/groupLedger/getTransactions.do?groupNum=\${groupNum}&yearMonth=\${yearMonth}`)
+            .then(res => res.json())
+            .then(data => {
+                currentData = data; // 가져온 데이터를 저장
+                document.getElementById('currentMonthLabel').innerText = yearMonth;
+                switchView('calendar'); // 뷰 전환
+            })
+            .catch(err => console.error('데이터 로드 실패:', err));
+        }
+
+        // 화면이 처음 켜질 때 실행
+        window.onload = () => { 
+            // 임시 하드코딩 (나중에는 실제 현재 연/월을 구하는 로직으로 교체해야 합니다)
+            loadMonthData("2023-10"); 
+        };
+        
+        // 달력 뷰 그리기 (renderCalendar)
+        function renderCalendar() {
+            const calendarView = document.getElementById('calendarView');
+            const yearMonth = document.getElementById('currentMonthLabel').innerText; // 예: "2023-10"
+            if (!yearMonth) return;
+
+            const [year, month] = yearMonth.split('-');
+            
+            // 이번 달의 첫째 날 요일과 마지막 날짜 계산
+            const firstDay = new Date(year, month - 1, 1).getDay(); // 0(일) ~ 6(토)
+            const lastDate = new Date(year, month, 0).getDate(); // 28, 29, 30, 31
+
+            // 달력 HTML 뼈대 생성 (CSS Grid 활용)
+            let html = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 20px;">`;
+            
+            // 요일 헤더
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            days.forEach(day => {
+                html += `<div style="font-weight: bold; padding: 10px; background: #f8f9fa;">\${day}</div>`;
+            });
+
+            // 1일 시작 전 빈 칸 채우기
+            for (let i = 0; i < firstDay; i++) {
+                html += `<div style="padding: 10px; background: #fff; border: 1px solid #eee;"></div>`;
+            }
+
+            // 실제 날짜 그리기
+            for (let d = 1; d <= lastDate; d++) {
+                // 날짜 포맷 맞추기 (예: "2023-10-05")
+                const dateStr = `\${year}-\${month}-\${String(d).padStart(2, '0')}`;
+                
+                // currentData에서 이 날짜에 해당하는 지출만 쏙쏙 뽑아냄!
+                const dayTransactions = currentData.filter(t => t.transDate === dateStr);
+                
+                let dayHtml = `<div style="padding: 10px; min-height: 80px; background: #fff; border: 1px solid #eee; text-align: left; position: relative;">`;
+                dayHtml += `<strong style="display: block; margin-bottom: 5px;">\${d}</strong>`; // 날짜 번호
+                
+                // 해당 날짜에 지출 내역이 있다면 그리기
+                if (dayTransactions.length > 0) {
+                    let dailyTotal = 0;
+                    dayTransactions.forEach(t => {
+                        dailyTotal += t.transAmount;
+                        // 개별 결제자 + 금액 표시 (너무 길면 잘리도록)
+                        dayHtml += `<div style="font-size: 0.75em; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        [\${t.userNickname}] \${t.transAmount.toLocaleString()}원
+                                    </div>`;
+                    });
+                    // 그날의 총 지출액 굵게 표시
+                    dayHtml += `<div style="font-size: 0.85em; font-weight: bold; color: #dc3545; margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 3px;">
+                                    총 \${dailyTotal.toLocaleString()}원
+                                </div>`;
+                }
+                
+                dayHtml += `</div>`;
+                html += dayHtml;
+            }
+            html += `</div>`; // grid 컨테이너 닫기
+            
+            // 기존 제목(h3) 아래에 달력 덮어쓰기
+            calendarView.innerHTML = `<h3 id="currentMonthLabel" style="text-align:center;">\${yearMonth}</h3>` + html;
+        }
+        
+        // 리스트 뷰 그리기 (renderList)
+        function renderList() {
+            const listView = document.getElementById('listView');
+            
+            if (currentData.length === 0) {
+                listView.innerHTML = `<div style="text-align: center; padding: 50px; color: #888;">이번 달 지출 내역이 없습니다.</div>`;
+                return;
+            }
+
+            let html = `<ul style="list-style: none; padding: 0; margin: 0;">`;
+            
+            // 최신 날짜순으로 출력 (이미 DB에서 정렬해 왔으므로 바로 출력)
+            currentData.forEach(t => {
+                html += `
+                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee;">
+                        <div>
+                            <strong style="font-size: 1.1em; display: block;">\${t.categoryName} - \${t.transMemo || '메모 없음'}</strong>
+                            <span style="font-size: 0.85em; color: #888;">\${t.transDate} | 결제자: \${t.userNickname}</span>
+                        </div>
+                        <div style="font-size: 1.2em; font-weight: bold; color: #dc3545;">
+                            \${t.transAmount.toLocaleString()} 원
+                        </div>
+                    </li>
+                `;
+            });
+            
+            html += `</ul>`;
+            listView.innerHTML = html;
+        }
+
+        // 오늘 날짜 기준으로 이번 달 데이터 불러오기 함수 수정
+        window.onload = () => { 
+            // 2026년 등 현재 시점의 진짜 연/월을 자동으로 계산해서 넘겨줍니다!
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const currentYearMonth = `\${yyyy}-\${mm}`;
+            
+            loadMonthData(currentYearMonth); 
+        };
     </script>
 </body>
 </html>
