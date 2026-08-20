@@ -253,4 +253,29 @@ public class GroupTransactionDAO {
         }
     }
     
+    // ==========================================================
+    // [과거 정산 보관함 3] 특정 회차의 지출 내역 가져오기
+    // ==========================================================
+    public List<GroupTransactionDTO> getTransactionsByPeriod(int periodNum) throws Exception {
+        List<GroupTransactionDTO> list = new ArrayList<>();
+        String sql = SqlManager.getSql("getTransactionsByPeriod"); 
+        
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, periodNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    GroupTransactionDTO dto = new GroupTransactionDTO();
+                    dto.setGtransNum(rs.getInt("GTRANS_NUM"));
+                    dto.setTransAmount(rs.getLong("TRANS_AMOUNT"));
+                    dto.setTransDate(rs.getString("TRANS_DATE"));
+                    dto.setTransMemo(rs.getString("TRANS_MEMO"));
+                    dto.setUserNickname(rs.getString("USER_NICKNAME"));
+                    dto.setCategoryName(rs.getString("CATEGORY_NAME"));
+                    list.add(dto);
+                }
+            }
+        }
+        return list;
+    }
+    
 }

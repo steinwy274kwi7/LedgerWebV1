@@ -187,4 +187,48 @@
 	    ]]>
 	</entry>
 
+	<!-- 마감된 과거 장부 회차 목록 조회 -->
+	<entry key="getClosedPeriods">
+	    <![CDATA[
+	    SELECT 
+	        PERIOD_NUM, 
+	        PERIOD_SEQ, 
+	        TO_CHAR(PERIOD_START_DATE, 'YYYY-MM-DD') AS START_DATE,
+	        TO_CHAR(PERIOD_END_DATE, 'YYYY-MM-DD') AS END_DATE
+	    FROM LEDGER_PERIODS
+	    WHERE GROUP_NUM = ? AND PERIOD_STATUS = 'C'
+	    ORDER BY PERIOD_SEQ DESC
+	    ]]>
+	</entry>
+
+	<!-- 특정 회차의 정산 결과 스냅샷 조회 -->
+	<entry key="getSettlementSnapshots">
+	    <![CDATA[
+	    SELECT 
+	        P.USER_NICKNAME AS PAYER_NICKNAME,
+	        R.USER_NICKNAME AS RECEIVER_NICKNAME,
+	        S.SETTLE_AMOUNT
+	    FROM SETTLEMENT_SNAPSHOTS S
+	    JOIN USERS P ON S.PAYER_USER_NUM = P.USER_NUM
+	    JOIN USERS R ON S.RECEIVER_USER_NUM = R.USER_NUM
+	    WHERE S.PERIOD_NUM = ?
+	    ORDER BY S.SETTLE_AMOUNT DESC
+	    ]]>
+	</entry>
+	
+	<!-- 특정 회차의 전체 지출 내역 조회 -->
+	<entry key="getTransactionsByPeriod">
+	    <![CDATA[
+	    SELECT 
+	        T.GTRANS_NUM, T.TRANS_AMOUNT, 
+	        TO_CHAR(T.TRANS_DATE, 'YYYY-MM-DD') AS TRANS_DATE,
+	        T.TRANS_MEMO, U.USER_NICKNAME, C.CATEGORY_NAME
+	    FROM GROUP_TRANSACTIONS T
+	    JOIN USERS U ON T.USER_NUM = U.USER_NUM
+	    JOIN GROUP_CATEGORIES C ON T.GCATEGORY_NUM = C.GCATEGORY_NUM
+	    WHERE T.PERIOD_NUM = ? AND T.USE_YN = 'Y'
+	    ORDER BY T.TRANS_DATE DESC, T.GTRANS_NUM DESC
+	    ]]>
+	</entry>
+
 </properties>

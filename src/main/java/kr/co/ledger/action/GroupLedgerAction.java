@@ -11,6 +11,8 @@ import kr.co.ledger.dto.ExpenseLogDTO;
 import kr.co.ledger.dto.GroupCategoryDTO;
 import kr.co.ledger.dto.GroupDTO;
 import kr.co.ledger.dto.GroupTransactionDTO;
+import kr.co.ledger.dto.LedgerPeriodDTO;
+import kr.co.ledger.dto.SettlementSnapshotDTO;
 import kr.co.ledger.dto.TrendDTO;
 import kr.co.ledger.dto.UserDTO;
 import kr.co.ledger.service.GroupLedgerService;
@@ -39,6 +41,8 @@ public class GroupLedgerAction implements Action {
             case "editTransaction"   	-> editTransaction(request, response);
             case "removeTransaction" 	-> removeTransaction(request, response);
             case "getLogs" 				-> getLogs(request, response);
+            case "getClosedPeriods" 	-> getClosedPeriods(request, response);
+            case "getArchiveDetails" 	-> getArchiveDetails(request, response);
             default -> throw new IllegalArgumentException("GroupLedgerAction에 없는 기능: " + command);
         };
     }
@@ -390,6 +394,95 @@ public class GroupLedgerAction implements Action {
         } catch (Exception e) {
             e.printStackTrace();
             out.print("[]");
+        } finally {
+            out.flush();
+        }
+        return null;
+    }
+    
+ // ==========================================================
+    // [과거 정산 보관함] 1. 마감된 회차 목록 가져오기 API
+    // ==========================================================
+    private String getClosedPeriods(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            
+            // Service 쪽에 "마감된 회차 목록 가져와!" 라고 요청 (이따 만들 부분)
+            List<LedgerPeriodDTO> list = GroupLedgerService.getInstance().getClosedPeriods(groupNum);
+            
+            StringBuilder json = new StringBuilder("[");
+            for (int i = 0; i < list.size(); i++) {
+                LedgerPeriodDTO dto = list.get(i);
+                
+                json.append(String.format(
+                    "{\"periodNum\":%d, \"periodSeq\":%d, \"startDate\":\"%s\", \"endDate\":\"%s\"}",
+                    dto.getPeriodNum(), dto.getPeriodSeq(), dto.getPeriodStartDate(), dto.getPeriodEndDate()
+                ));
+                
+                if (i < list.size() - 1) json.append(",");
+            }
+            json.append("]");
+            
+            out.print(json.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+            out.print("[]");
+        } finally {
+            out.flush();
+        }
+        return null;
+    }
+
+    // ==========================================================
+    // [과거 정산 보관함] 2. 특정 회차의 상세 내역(스냅샷+지출) 가져오기 API
+    // ==========================================================
+    private String getArchiveDetails(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        try {
+            int periodNum = Integer.parseInt(request.getParameter("periodNum"));
+            
+            // Service 쪽에 스냅샷과 지출 내역을 각각 요청 (이따 만들 부분)
+            List<SettlementSnapshotDTO> snapshots = GroupLedgerService.getInstance().getSnapshots(periodNum);
+            List<GroupTransactionDTO> transactions = GroupLedgerService.getInstance().getTransactionsByPeriod(periodNum);
+            
+            StringBuilder json = new StringBuilder("{");
+            
+            // 1. 스냅샷(정산 결과) 배열 조립
+            json.append("\"snapshots\":[");
+            for (int i = 0; i < snapshots.size(); i++) {
+                SettlementSnapshotDTO s = snapshots.get(i);
+                json.append(String.format(
+                    "{\"payerNickname\":\"%s\", \"receiverNickname\":\"%s\", \"settleAmount\":%d}",
+                    s.getPayerNickname(), s.getReceiverNickname(), s.getSettleAmount()
+                ));
+                if (i < snapshots.size() - 1) json.append(",");
+            }
+            json.append("],");
+            
+            // 2. 과거 지출 내역 배열 조립
+            json.append("\"transactions\":[");
+            for (int i = 0; i < transactions.size(); i++) {
+                GroupTransactionDTO t = transactions.get(i);
+                String safeMemo = t.getTransMemo() != null ? t.getTransMemo().replace("\"", "\\\"").replace("\n", " ") : "";
+                
+                json.append(String.format(
+                    "{\"categoryName\":\"%s\", \"transMemo\":\"%s\", \"userNickname\":\"%s\", \"transAmount\":%d, \"transDate\":\"%s\"}",
+                    t.getCategoryName(), safeMemo, t.getUserNickname(), t.getTransAmount(), t.getTransDate()
+                ));
+                if (i < transactions.size() - 1) json.append(",");
+            }
+            json.append("]");
+            
+            json.append("}");
+            out.print(json.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+            out.print("{}");
         } finally {
             out.flush();
         }

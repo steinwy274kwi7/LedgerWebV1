@@ -8,8 +8,26 @@ public class SettlementSnapshotDTO {
     private int receiverUserNum;
     private long settleAmount;
     private String createdAt;
+    private String payerNickname;
+    private String receiverNickname;
 
-    public SettlementSnapshotDTO() {}
+    public String getPayerNickname() {
+		return payerNickname;
+	}
+
+	public void setPayerNickname(String payerNickname) {
+		this.payerNickname = payerNickname;
+	}
+
+	public String getReceiverNickname() {
+		return receiverNickname;
+	}
+
+	public void setReceiverNickname(String receiverNickname) {
+		this.receiverNickname = receiverNickname;
+	}
+
+	public SettlementSnapshotDTO() {}
 
 	public int getSettleNum() {
 		return settleNum;

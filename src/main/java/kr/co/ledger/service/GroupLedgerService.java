@@ -7,8 +7,11 @@ import kr.co.ledger.dto.ChartDTO;
 import kr.co.ledger.dto.ExpenseLogDTO;
 import kr.co.ledger.dto.GroupCategoryDTO;
 import kr.co.ledger.dto.GroupTransactionDTO;
+import kr.co.ledger.dto.LedgerPeriodDTO;
+import kr.co.ledger.dto.SettlementSnapshotDTO;
 import kr.co.ledger.dto.TrendDTO;
 import kr.co.ledger.dao.GroupCategoryDAO;
+import kr.co.ledger.dao.GroupDAO;
 import kr.co.ledger.dao.GroupTransactionDAO;
 
 public class GroupLedgerService {
@@ -151,4 +154,26 @@ public class GroupLedgerService {
 	    public List<ExpenseLogDTO> getExpenseLogs(int groupNum) throws Exception {
 	        return GroupTransactionDAO.getInstance().getExpenseLogs(groupNum);
 	    }
+	    
+	    // ==========================================================
+	    // [과거 정산 보관함 1] 마감된 회차 목록 조회
+	    // ==========================================================
+	    public List<LedgerPeriodDTO> getClosedPeriods(int groupNum) throws Exception {
+	        return GroupDAO.getInstance().getClosedPeriods(groupNum);
+	    }
+
+	    // ==========================================================
+	    // [과거 정산 보관함 2] 특정 회차의 정산 스냅샷 조회
+	    // ==========================================================
+	    public List<SettlementSnapshotDTO> getSnapshots(int periodNum) throws Exception {
+	        return GroupDAO.getInstance().getSnapshots(periodNum);
+	    }
+
+	    // ==========================================================
+	    // [과거 정산 보관함 3] 특정 회차의 지출 내역 조회
+	    // ==========================================================
+	    public List<GroupTransactionDTO> getTransactionsByPeriod(int periodNum) throws Exception {
+	        return GroupTransactionDAO.getInstance().getTransactionsByPeriod(periodNum);
+	    }
+	    
 }

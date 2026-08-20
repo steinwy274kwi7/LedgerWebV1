@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import kr.co.ledger.dto.GroupDTO;
 import kr.co.ledger.dto.GroupMemberDTO;
+import kr.co.ledger.dto.LedgerPeriodDTO;
+import kr.co.ledger.dto.SettlementSnapshotDTO;
 import kr.co.ledger.util.DBManager;
 import kr.co.ledger.util.SqlManager;
 
@@ -268,6 +270,51 @@ public class GroupDAO {
                     group.setGroupName(rs.getString("GROUP_NAME"));
                     group.setGroupDesc(rs.getString("GROUP_DESC"));
                     list.add(group);
+                }
+            }
+        }
+        return list;
+    }
+    
+    // ==========================================================
+    // [과거 정산 보관함 1] 마감된 회차 목록 가져오기
+    // ==========================================================
+    public List<LedgerPeriodDTO> getClosedPeriods(int groupNum) throws Exception {
+        List<LedgerPeriodDTO> list = new ArrayList<>();
+        String sql = SqlManager.getSql("getClosedPeriods"); 
+        
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, groupNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    LedgerPeriodDTO dto = new LedgerPeriodDTO();
+                    dto.setPeriodNum(rs.getInt("PERIOD_NUM"));
+                    dto.setPeriodSeq(rs.getInt("PERIOD_SEQ"));
+                    dto.setPeriodStartDate(rs.getString("START_DATE"));
+                    dto.setPeriodEndDate(rs.getString("END_DATE"));
+                    list.add(dto);
+                }
+            }
+        }
+        return list;
+    }
+
+    // ==========================================================
+    // [과거 정산 보관함 2] 특정 회차의 정산 결과 스냅샷 가져오기
+    // ==========================================================
+    public List<SettlementSnapshotDTO> getSnapshots(int periodNum) throws Exception {
+        List<SettlementSnapshotDTO> list = new ArrayList<>();
+        String sql = SqlManager.getSql("getSettlementSnapshots"); 
+        
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, periodNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    SettlementSnapshotDTO dto = new SettlementSnapshotDTO();
+                    dto.setPayerNickname(rs.getString("PAYER_NICKNAME"));
+                    dto.setReceiverNickname(rs.getString("RECEIVER_NICKNAME"));
+                    dto.setSettleAmount(rs.getLong("SETTLE_AMOUNT"));
+                    list.add(dto);
                 }
             }
         }

@@ -29,6 +29,7 @@
                 <button onclick="openCategoryModal()" style="padding: 10px 20px; background: #6f42c1; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🏷️ 카테고리 관리</button>
                 <button onclick="openExpenseModal()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">+ 지출 등록</button>
                 <button onclick="openLogModal()" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">📜 무결성 변경 이력</button>
+                <button onclick="openArchiveModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🗂️ 과거 내역</button>
             </div>
         </c:if>
 
@@ -49,15 +50,15 @@
         <!-- 뷰 영역 (한 번에 하나만 보임) -->
         <div id="calendarView" style="display:block;">
             <h3 id="currentMonthLabel" style="text-align:center;"></h3>
-            <!-- 여기에 자바스크립트로 달력 그리드를 그릴 예정입니다 -->
+            <!-- 자바스크립트로 달력 그리드 렌더링 -->
         </div>
         <div id="listView" style="display:none;">
-            <!-- 여기에 자바스크립트로 리스트를 그릴 예정입니다 -->
+            <!-- 자바스크립트로 리스트 렌더링 -->
         </div>
 
     </div> <!-- // container 끝 -->
 
-    <!-- 2. 설정 모달창 (평소엔 숨김) -->
+    <!-- 2. 설정 모달창 -->
     <div id="settingsModal" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 400px; z-index:1000;">
         <h3 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 10px;">방 설정 관리</h3>
         
@@ -115,9 +116,8 @@
             <button onclick="closeMemberModal()" style="background: none; border: none; font-size: 1.2em; cursor: pointer;">X</button>
         </div>
         
-        <!-- 실시간으로 멤버 리스트가 꽂힐 영역 -->
+        <!-- 동적 리스트 영역 -->
         <ul id="memberListArea" style="list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto;">
-            <!-- JS로 동적 생성됨 -->
         </ul>
         
         <!-- 자진 탈퇴 버튼 (관전자에게는 숨김 처리) -->
@@ -141,7 +141,6 @@
         </div>
         
         <ul id="categoryListArea" style="list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; border-top: 1px solid #eee;">
-            <!-- JS에서 동적으로 채워집니다 -->
         </ul>
     </div>
     
@@ -157,7 +156,6 @@
         <div style="margin-bottom: 15px;">
             <label style="display:block; font-weight:bold; margin-bottom:5px;">카테고리</label>
             <select id="expCategory" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-                <!-- JS에서 동적으로 채워집니다 -->
             </select>
         </div>
         
@@ -204,17 +202,41 @@
         </div>
     </div>
     
-    <!-- 무결성 변경 이력 모달창 (Read-Only) -->
+    <!-- 무결성 변경 이력 모달창 -->
     <div id="logModal" style="display:none; position:fixed; top:10%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 500px; z-index:1000; max-height: 80vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px;">
             <h3 style="margin: 0;">무결성 변경 이력 <span style="font-size: 0.6em; color: #dc3545; font-weight: normal;">(Read-Only)</span></h3>
             <button onclick="document.getElementById('logModal').style.display='none'" style="background: none; border: none; font-size: 1.2em; cursor: pointer;">X</button>
         </div>
         <ul id="logListArea" style="list-style: none; padding: 0; margin-top: 15px;">
-            <!-- JS로 렌더링 됩니다 -->
         </ul>
     </div>
-    
+	    
+	<!-- 과거 정산 보관함 모달창 -->
+	<div id="archiveModal" style="display:none; position:fixed; top:10%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 600px; z-index:1000; max-height: 80vh; overflow-y: auto;">
+	    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+	        <h3 style="margin: 0;">🗂️ 과거 정산 보관함</h3>
+	        <button onclick="closeArchiveModal()" style="background: none; border: none; font-size: 1.2em; cursor: pointer;">X</button>
+	    </div>
+	    
+	    <!-- 회차 목록 영역 -->
+	    <div id="archivePeriodList"></div>
+	    
+	    <!-- 상세 내역 영역 -->
+	    <div id="archiveDetailArea" style="display:none; margin-top:10px;">
+	        <button onclick="backToPeriodList()" style="margin-bottom:15px; padding:5px 10px; cursor:pointer; background:#f8f9fa; border:1px solid #ddd; border-radius:3px;">⬅️ 목록으로 돌아가기</button>
+	        <h4 id="detailPeriodTitle" style="color:#007BFF; margin-top:0; margin-bottom:15px;"></h4>
+	        
+	        <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid #e9ecef;">
+	            <strong style="display:block; margin-bottom:10px;">💰 최종 정산 결과</strong>
+	            <ul id="snapshotList" style="list-style:none; padding-left:0; margin:0;"></ul>
+	        </div>
+	        
+	        <strong style="display:block; margin-bottom:10px;">📝 상세 지출 내역</strong>
+	        <ul id="archiveTransactionList" style="list-style:none; padding-left:0; margin:0;"></ul>
+	    </div>
+	</div>
+
     <script>
         function openSettingsModal() {
             document.getElementById('settingsModal').style.display = 'block';
@@ -320,7 +342,6 @@
             .catch(err => console.error('초대 에러:', err));
         }
         
-     	// JSTL 값을 JS 변수로 가져오기 (권한 분기용)
         const currentUserNum = parseInt('${loginUser.userNum}');
 		let groupOwnerNum = parseInt('${group.groupOwnerNum}');
 		const isMember = ${isMember};
@@ -334,7 +355,6 @@
             document.getElementById('memberModal').style.display = 'none';
         }
 
-        // 멤버 목록 로드
         function loadMemberList() {
             const groupNum = document.getElementById('settingGroupNum').value;
             
@@ -366,7 +386,6 @@
             .catch(err => console.error('멤버 목록 로드 실패:', err));
         }
 
-        // 강퇴 처리
         function kickMember(targetUserNum) {
             if (!confirm("해당 멤버를 강퇴하시겠습니까?\n(미정산 잔액과 무관하게 즉시 이탈 처리됩니다.)")) {
                 return;
@@ -391,7 +410,6 @@
             .catch(err => console.error('강퇴 실패:', err));
         }
 
-        // 자진 탈퇴 처리 (방장/멤버 동적 처리)
         function leaveGroup() {
             let confirmMsg = "";
             
@@ -416,7 +434,7 @@
             .then(data => {
                 if (data.success) {
                     alert(data.message);
-                    window.location.href = '${pageContext.request.contextPath}/group/list.do'; // 공통: 탈퇴 후 목록으로 이동
+                    window.location.href = '${pageContext.request.contextPath}/group/list.do';
                 } else {
                     alert("오류: " + data.message);
                 }
@@ -424,7 +442,6 @@
             .catch(err => console.error('탈퇴 실패:', err));
         }
         
-     	// 방장 수동 위임 처리 (새로고침 없는 실시간 버전)
         function transferOwner(targetUserNum, targetNickname) {
             if (!confirm(targetNickname + " 님에게 방장 권한을 넘겨주시겠습니까?\n(위임 즉시 본인은 일반 멤버로 전환되며, 더 이상 방 설정 및 강퇴가 불가능합니다.)")) {
                 return;
@@ -441,15 +458,9 @@
             .then(data => {
                 if (data.success) {
                     alert(data.message);
-                    
-                    // 1. 자바스크립트가 알고 있는 방장 번호를 새로운 방장으로 업데이트
                     groupOwnerNum = targetUserNum; 
-                    
-                    // 2. 헤더에 있던 방장 전용 버튼(초대, 설정)을 DOM에서 숨김 처리
                     document.getElementById('inviteBtn').style.display = 'none';
                     document.getElementById('settingBtn').style.display = 'none';
-                    
-                    // 3. 모달창 리스트 다시 그리기 (새로고침 없이 갱신됨)
                     loadMemberList(); 
                 } else {
                     alert("오류: " + data.message);
@@ -458,15 +469,12 @@
             .catch(err => console.error('위임 실패:', err));
         }
      
-        // 백엔드에서 가져온 데이터를 저장해둘 전역 변수
         let currentData = []; 
 
         function switchView(type) {
-            // 화면 숨김/표시 처리
             document.getElementById('calendarView').style.display = (type === 'calendar') ? 'block' : 'none';
             document.getElementById('listView').style.display = (type === 'list') ? 'block' : 'none';
             
-            // 실제 화면 그리기 함수 호출
             if(type === 'calendar') renderCalendar();
             if(type === 'list') renderList();
         }
@@ -484,40 +492,32 @@
             .catch(err => console.error('데이터 로드 실패:', err));
         }
 
-        /* 카테고리 목록 동적 로드 로직 */
-        /* 카테고리 목록 동적 로드 로직 */
         function fetchCategoryList() {
             const groupNum = '${group.groupNum}';
             
             fetch(`${pageContext.request.contextPath}/groupLedger/getCategoryList.do?groupNum=\${groupNum}`)
             .then(res => res.json())
             .then(data => {
-                // 1. 등록 모달창 Select 박스
                 const select = document.getElementById('expCategory');
                 select.innerHTML = '';
                 
-                // 2. 수정 모달창 Select 박스
                 const editSelect = document.getElementById('editExpCategory');
                 editSelect.innerHTML = ''; 
                 
-                // 3. 카테고리 관리 모달창 List
                 const listArea = document.getElementById('categoryListArea');
                 listArea.innerHTML = '';
 
                 data.forEach(c => {
-                    // Select Option 생성 (등록용)
                     let option1 = document.createElement('option');
                     option1.value = c.gcategoryNum;
                     option1.innerText = c.categoryName;
                     select.appendChild(option1);
 
-                    // 🌟 Select Option 생성 (수정용)
                     let option2 = document.createElement('option');
                     option2.value = c.gcategoryNum;
                     option2.innerText = c.categoryName;
                     editSelect.appendChild(option2);
 
-                    // List Item 생성
                     let li = document.createElement('li');
                     li.style.cssText = "display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; align-items:center;";
                     
@@ -538,7 +538,6 @@
             .catch(err => console.error('카테고리 로드 실패:', err));
         }
 
-        // 화면이 처음 켜질 때 실행
         window.onload = () => { 
             const today = new Date();
             const yyyy = today.getFullYear();
@@ -546,10 +545,9 @@
             const currentYearMonth = `\${yyyy}-\${mm}`;
             
             loadMonthData(currentYearMonth); 
-            fetchCategoryList(); /* 화면 로드 시 카테고리 목록 불러오기 */
+            fetchCategoryList(); 
         };
         
-     // 달력 뷰 그리기 (renderCalendar)
         function renderCalendar() {
             const calendarView = document.getElementById('calendarView');
             const yearMonth = document.getElementById('currentMonthLabel').innerText; 
@@ -573,7 +571,6 @@
             }
 
             for (let d = 1; d <= lastDate; d++) {
-                // 문제의 원인이었던 String(d) 부분 이스케이프 완료!
                 const dateStr = `\${year}-\${month}-\${String(d).padStart(2, '0')}`;
                 const dayTransactions = currentData.filter(t => t.transDate === dateStr);
                 
@@ -612,10 +609,9 @@
             calendarView.innerHTML = `<h3 id="currentMonthLabel" style="text-align:center;">\${yearMonth}</h3>` + html;
         }
         
-     	// 리스트 뷰 그리기 (renderList)
         function renderList() {
             const listView = document.getElementById('listView');
-            const showClosed = document.getElementById('toggleClosedData').checked; // 체크 여부 확인
+            const showClosed = document.getElementById('toggleClosedData').checked;
             
             if (currentData.length === 0) {
                 listView.innerHTML = `<div style="text-align: center; padding: 50px; color: #888;">이번 달 지출 내역이 없습니다.</div>`;
@@ -623,17 +619,15 @@
             }
 
             let html = `<ul style="list-style: none; padding: 0; margin: 0;">`;
-            let visibleCount = 0; // 화면에 렌더링되는 항목 수 카운트
+            let visibleCount = 0; 
 
             currentData.forEach(t => {
                 const isClosed = (t.periodStatus === 'C');
                 
-                // 체크 해제 상태이면서 마감된 내역이면 렌더링 건너뜀
                 if (!showClosed && isClosed) return;
                 
                 visibleCount++;
                 
-                // 마감된 내역은 투명도를 주어 흐리게 처리
                 const itemStyle = isClosed ? "opacity: 0.4; color: #555;" : "color: #000;";
                 const badgeHtml = isClosed ? `<span style="font-size:0.7em; background:#6c757d; color:white; padding:2px 6px; border-radius:3px; margin-left:5px; vertical-align:middle;">정산완료</span>` : "";
                 
@@ -667,7 +661,6 @@
             });
             html += `</ul>`;
             
-            // 필터링 결과 렌더링할 데이터가 하나도 없는 경우 빈 화면 메시지 처리
             if (visibleCount === 0) {
                 listView.innerHTML = `<div style="text-align: center; padding: 50px; color: #888;">이번 달 지출 내역이 없습니다.</div>`;
             } else {
@@ -675,7 +668,6 @@
             }
         }
 
-        // 지출 등록 스크립트
         function openExpenseModal() {
             document.getElementById('expenseModal').style.display = 'block';
             const today = new Date();
@@ -731,7 +723,6 @@
             .catch(err => console.error('지출 등록 실패:', err));
         }
 
-     // 지출 내역 수정 모달 열기 (데이터 맵핑)
         function openEditExpenseModal(transNum, date, catName, amount, memo) {
             document.getElementById('editExpenseModal').style.display = 'block';
             
@@ -743,7 +734,6 @@
             document.getElementById('editExpAmount').value = amount;
             document.getElementById('editExpMemo').value = memo;
             
-            // Select 박스에서 기존 카테고리명과 일치하는 옵션 자동 선택
             const select = document.getElementById('editExpCategory');
             for(let i=0; i<select.options.length; i++) {
                 if(select.options[i].text === catName) {
@@ -754,13 +744,12 @@
         }
         function closeEditExpenseModal() { document.getElementById('editExpenseModal').style.display = 'none'; }
 
-        // 지출 내역 수정 완료 처리
         function saveEditExpense() {
             const transNum = document.getElementById('editTransNum').value;
             const date = document.getElementById('editExpDate').value;
             const selectBox = document.getElementById('editExpCategory');
             const categoryNum = selectBox.value;
-            const categoryName = selectBox.options[selectBox.selectedIndex].text; // 로그용 이름 추출
+            const categoryName = selectBox.options[selectBox.selectedIndex].text; 
             const amount = parseInt(document.getElementById('editExpAmount').value);
             const memo = document.getElementById('editExpMemo').value.trim();
 
@@ -769,7 +758,7 @@
 
             const params = new URLSearchParams({ 
                 gtransNum: transNum, 
-                groupOwnerNum: groupOwnerNum, // 전역 변수 활용
+                groupOwnerNum: groupOwnerNum, 
                 transDate: date, 
                 gcategoryNum: categoryNum, 
                 categoryName: categoryName,
@@ -788,7 +777,6 @@
             }).catch(err => console.error(err));
         }
 
-        // 지출 내역 삭제 처리
         function deleteTransaction(transNum) {
             if(!confirm("이 지출 내역을 정말 삭제하시겠습니까? (삭제 로그가 기록됩니다)")) return;
             
@@ -803,7 +791,6 @@
             }).catch(err => console.error(err));
         }
         
-        /* 카테고리 관리 스크립트 CRUD */
         function openCategoryModal() {
             document.getElementById('categoryManageModal').style.display = 'block';
             document.getElementById('newCategoryName').value = '';
@@ -827,7 +814,7 @@
             }).then(res => res.json()).then(data => {
                 if (data.success) {
                     document.getElementById('newCategoryName').value = '';
-                    fetchCategoryList(); // 목록 즉시 리렌더링
+                    fetchCategoryList(); 
                 } else {
                     alert("오류: " + data.message);
                 }
@@ -849,7 +836,6 @@
             }).then(res => res.json()).then(data => {
                 if (data.success) {
                     fetchCategoryList();
-                    // 이름이 바뀌었으므로 메인 리스트/달력도 리렌더링
                     const currentYearMonth = document.getElementById('currentMonthLabel').innerText;
                     loadMonthData(currentYearMonth);
                 } else {
@@ -872,7 +858,6 @@
                 if (data.success) {
                     alert(data.message);
                     fetchCategoryList();
-                    // 이관 발생으로 메인 뷰 즉시 리렌더링
                     const currentYearMonth = document.getElementById('currentMonthLabel').innerText;
                     loadMonthData(currentYearMonth);
                 } else {
@@ -881,7 +866,6 @@
             }).catch(err => console.error('카테고리 삭제 실패:', err));
         }
         
-     // 변경 이력 모달 오픈 및 데이터 통신 렌더링
         function openLogModal() {
             document.getElementById('logModal').style.display = 'block';
             
@@ -901,7 +885,6 @@
                 data.forEach(log => {
                     let logMessage = '';
                     
-                    // U(수정 및 카테고리 이관), D(삭제) 분기 처리하여 예쁘게 포맷팅
                     if (log.actionType === 'U') {
                         logMessage = `[수정] <b style="color:#ffc107;">\${log.beforeCategory} (\${log.beforeAmount.toLocaleString()}원)</b> ➔ 
                                       <b style="color:#28a745;">\${log.afterCategory} (\${log.afterAmount.toLocaleString()}원)</b>`;
@@ -964,13 +947,99 @@
                 isClosing = false;
             });
         }
-     // 체크박스를 누를 때마다 현재 열려있는 뷰를 다시 그려줍니다.
+        
         function refreshCurrentView() {
             if (document.getElementById('calendarView').style.display === 'block') {
                 renderCalendar();
             } else {
                 renderList();
             }
+        }
+
+        // 과거 정산 보관함 JS 동작 구현부 추가
+        function openArchiveModal() {
+            document.getElementById('archiveModal').style.display = 'block';
+            document.getElementById('archiveDetailArea').style.display = 'none';
+            document.getElementById('archivePeriodList').style.display = 'block';
+            
+            const groupNum = '${group.groupNum}'; 
+            
+            fetch(`${pageContext.request.contextPath}/groupLedger/getClosedPeriods.do?groupNum=\${groupNum}`)
+            .then(res => res.json())
+            .then(data => {
+                let html = '';
+                if(data.length === 0) {
+                    html = '<div style="text-align:center; padding:30px; color:#888;">보관된 과거 정산 내역이 없습니다.</div>';
+                } else {
+                    data.forEach(p => {
+                        html += `
+                            <div onclick="loadArchiveDetails(\${p.periodNum}, \${p.periodSeq})" 
+                                 style="padding:15px; border:1px solid #ddd; margin-bottom:10px; border-radius:5px; cursor:pointer; background:#f8f9fa; transition:background 0.2s;"
+                                 onmouseover="this.style.background='#e2e6ea'" onmouseout="this.style.background='#f8f9fa'">
+                                <strong style="font-size:1.1em; color:#333;">제 \${p.periodSeq}회차 정산 기록</strong> 
+                                <span style="font-size:0.85em; color:#666; display:block; margin-top:5px;">(\${p.startDate} ~ \${p.endDate})</span>
+                            </div>`;
+                    });
+                }
+                document.getElementById('archivePeriodList').innerHTML = html;
+            })
+            .catch(err => console.error('회차 목록 로드 실패:', err));
+        }
+
+        function closeArchiveModal() {
+            document.getElementById('archiveModal').style.display = 'none';
+        }
+
+        function backToPeriodList() {
+            document.getElementById('archiveDetailArea').style.display = 'none';
+            document.getElementById('archivePeriodList').style.display = 'block';
+        }
+
+        function loadArchiveDetails(periodNum, periodSeq) {
+            document.getElementById('archivePeriodList').style.display = 'none';
+            document.getElementById('archiveDetailArea').style.display = 'block';
+            document.getElementById('detailPeriodTitle').innerText = `제 \${periodSeq}회차 상세 내역`;
+            
+            fetch(`${pageContext.request.contextPath}/groupLedger/getArchiveDetails.do?periodNum=\${periodNum}`)
+            .then(res => res.json())
+            .then(data => {
+                
+                let snapHtml = '';
+                if(!data.snapshots || data.snapshots.length === 0) {
+                    snapHtml = '<li style="color:#666;">정산할 금액이 없습니다 (모두 0원)</li>';
+                } else {
+                    data.snapshots.forEach(s => {
+                        snapHtml += `
+                            <li style="padding:8px 0; border-bottom:1px dashed #ccc; font-size:1.05em;">
+                                <b style="color:#dc3545;">\${s.payerNickname}</b> 님이 
+                                <b style="color:#28a745;">\${s.receiverNickname}</b> 님에게 
+                                <strong style="color:#333;">\${s.settleAmount.toLocaleString()}원</strong> 송금
+                            </li>`;
+                    });
+                }
+                document.getElementById('snapshotList').innerHTML = snapHtml;
+                
+                let transHtml = '';
+                if(!data.transactions || data.transactions.length === 0) {
+                    transHtml = '<li style="padding:20px; text-align:center; color:#888;">지출 내역이 없습니다.</li>';
+                } else {
+                    data.transactions.forEach(t => {
+                        const safeMemo = t.transMemo ? t.transMemo : '메모 없음';
+                        transHtml += `
+                            <li style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; opacity: 0.6; background:#fafafa;">
+                                <div>
+                                    <strong style="font-size: 1.05em; margin-bottom: 5px; display:inline-block; color:#555;">\${t.categoryName} - \${safeMemo}</strong>
+                                    <span style="font-size: 0.85em; display: block; color: #888;">\${t.transDate} | 결제자: \${t.userNickname}</span>
+                                </div>
+                                <div style="font-size: 1.1em; font-weight: bold; color:#6c757d;">
+                                    \${t.transAmount.toLocaleString()} 원
+                                </div>
+                            </li>`;
+                    });
+                }
+                document.getElementById('archiveTransactionList').innerHTML = transHtml;
+            })
+            .catch(err => console.error('상세 내역 로드 실패:', err));
         }
     </script>
 </body>
