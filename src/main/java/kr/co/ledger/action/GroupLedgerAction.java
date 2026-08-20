@@ -6,6 +6,8 @@ import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.co.ledger.dao.GroupDAO;
+import kr.co.ledger.dao.GroupTransactionDAO;
+import kr.co.ledger.dao.SettlementSnapshotDAO;
 import kr.co.ledger.dto.ChartDTO;
 import kr.co.ledger.dto.ExpenseLogDTO;
 import kr.co.ledger.dto.GroupCategoryDTO;
@@ -30,19 +32,19 @@ public class GroupLedgerAction implements Action {
             case "statistics" -> "/views/group_ledger/group_statistics.jsp"; 
 
             case "getCategoryChartData" -> getCategoryChartData(request, response);
-            case "getTrendData" 		-> getTrendData(request, response);
-            case "ledger" 				-> getGroupLedgerMain(request, response);
-            case "getTransactions" 		-> getMonthlyTransactions(request, response);
-            case "insert"  				-> insertTransaction(request, response);
-            case "getCategoryList" 		-> getCategoryList(request, response);
-            case "addCategory"     		-> addCategory(request, response);
-            case "editCategory"    		-> editCategory(request, response);
-            case "removeCategory"  		-> removeCategory(request, response);
-            case "editTransaction"   	-> editTransaction(request, response);
-            case "removeTransaction" 	-> removeTransaction(request, response);
-            case "getLogs" 				-> getLogs(request, response);
-            case "getClosedPeriods" 	-> getClosedPeriods(request, response);
-            case "getArchiveDetails" 	-> getArchiveDetails(request, response);
+            case "getTrendData"         -> getTrendData(request, response);
+            case "ledger"               -> getGroupLedgerMain(request, response);
+            case "getTransactions"      -> getMonthlyTransactions(request, response);
+            case "insert"               -> insertTransaction(request, response);
+            case "getCategoryList"      -> getCategoryList(request, response);
+            case "addCategory"          -> addCategory(request, response);
+            case "editCategory"         -> editCategory(request, response);
+            case "removeCategory"       -> removeCategory(request, response);
+            case "editTransaction"      -> editTransaction(request, response);
+            case "removeTransaction"    -> removeTransaction(request, response);
+            case "getLogs"              -> getLogs(request, response);
+            case "getClosedPeriods"     -> getClosedPeriods(request, response);
+            case "getArchiveDetails"    -> getArchiveDetails(request, response);
             default -> throw new IllegalArgumentException("GroupLedgerAction에 없는 기능: " + command);
         };
     }
@@ -145,7 +147,7 @@ public class GroupLedgerAction implements Action {
         
         // 멤버가 아닌데 비공개 방(N)에 접근하려 하면 차단
         if (!isMember && "N".equals(group.getGroupOpenYn())) {
-        	
+            
             response.setContentType("text/html; charset=UTF-8");
             PrintWriter out = response.getWriter();
             out.println("<script>");
@@ -172,20 +174,24 @@ public class GroupLedgerAction implements Action {
         
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
-            String yearMonth = request.getParameter("yearMonth"); // 예: "2023-10"
+            String yearMonth = request.getParameter("yearMonth"); 
             
-            // 4단계에서 만든 서비스 메서드 호출
             List<GroupTransactionDTO> list = GroupLedgerService.getInstance().getMonthlyTransactions(groupNum, yearMonth);
             
-         // JSON 배열로 직접 조립해서 반환
             StringBuilder json = new StringBuilder("[");
             for (int i = 0; i < list.size(); i++) {
                 GroupTransactionDTO dto = list.get(i);
                 
+                // 특수문자 안전 처리 로직 추가
+                String safeMemo = "";
+                if (dto.getTransMemo() != null) {
+                    safeMemo = dto.getTransMemo().replace("\\", "\\\\").replace("\"", "\\\"").replaceAll("[\\r\\n\\t]", " ");
+                }
+                
                 json.append(String.format(
                     "{\"gtransNum\":%d, \"userNum\":%d, \"userNickname\":\"%s\", \"categoryName\":\"%s\", \"transAmount\":%d, \"transDate\":\"%s\", \"transMemo\":\"%s\", \"periodStatus\":\"%s\"}",
                     dto.getGtransNum(), dto.getUserNum(), dto.getUserNickname(), 
-                    dto.getCategoryName(), dto.getTransAmount(), dto.getTransDate(), dto.getTransMemo(), dto.getPeriodStatus()
+                    dto.getCategoryName(), dto.getTransAmount(), dto.getTransDate(), safeMemo, dto.getPeriodStatus()
                 ));
                 
                 if (i < list.size() - 1) json.append(",");
@@ -354,7 +360,9 @@ public class GroupLedgerAction implements Action {
     }
     
     
+    // ==========================================================
     // [변경 이력 조회 API]
+    // ==========================================================
     private String getLogs(HttpServletRequest request, HttpServletResponse response) throws Exception {
         response.setContentType("application/json;charset=UTF-8");
         PrintWriter out = response.getWriter();
@@ -371,8 +379,11 @@ public class GroupLedgerAction implements Action {
                 String afterAmtStr = (dto.getAfterAmount() == null) ? "null" : String.valueOf(dto.getAfterAmount());
                 String afterCatStr = (dto.getAfterCategory() == null) ? "null" : "\"" + dto.getAfterCategory() + "\"";
                 
-                // 메모에 쌍따옴표나 줄바꿈이 있으면 JSON 파싱 에러가 나므로 이스케이프 처리
-                String safeMemo = dto.getTransMemo() != null ? dto.getTransMemo().replace("\"", "\\\"").replace("\n", " ") : "";
+                // 🌟 수정 완료: 변수명을 't'에서 'dto'로 맞추고 정규식 이스케이프 적용
+                String safeMemo = "";
+                if (dto.getTransMemo() != null) {
+                    safeMemo = dto.getTransMemo().replace("\\", "\\\\").replace("\"", "\\\"").replaceAll("[\\r\\n\\t]", " ");
+                }
                 
                 json.append("{");
                 json.append("\"logNum\":").append(dto.getLogNum()).append(",");
@@ -400,9 +411,7 @@ public class GroupLedgerAction implements Action {
         return null;
     }
     
- // ==========================================================
-    // [과거 정산 보관함] 1. 마감된 회차 목록 가져오기 API
-    // ==========================================================
+    // [과거 정산 보관함] 마감된 회차 목록 가져오기 API
     private String getClosedPeriods(HttpServletRequest request, HttpServletResponse response) throws Exception {
         response.setContentType("application/json;charset=UTF-8");
         PrintWriter out = response.getWriter();
@@ -436,9 +445,7 @@ public class GroupLedgerAction implements Action {
         return null;
     }
 
-    // ==========================================================
-    // [과거 정산 보관함] 2. 특정 회차의 상세 내역(스냅샷+지출) 가져오기 API
-    // ==========================================================
+    // [과거 정산 보관함] 특정 회차의 상세 내역(스냅샷+지출) 병합 반환 API
     private String getArchiveDetails(HttpServletRequest request, HttpServletResponse response) throws Exception {
         response.setContentType("application/json;charset=UTF-8");
         PrintWriter out = response.getWriter();
@@ -446,46 +453,55 @@ public class GroupLedgerAction implements Action {
         try {
             int periodNum = Integer.parseInt(request.getParameter("periodNum"));
             
-            // Service 쪽에 스냅샷과 지출 내역을 각각 요청 (이따 만들 부분)
-            List<SettlementSnapshotDTO> snapshots = GroupLedgerService.getInstance().getSnapshots(periodNum);
-            List<GroupTransactionDTO> transactions = GroupLedgerService.getInstance().getTransactionsByPeriod(periodNum);
+            // 1. 기존에 잘 만들어둔 DAO 재활용 (지출 내역)
+            List<GroupTransactionDTO> transList = GroupTransactionDAO.getInstance().getTransactionsByPeriod(periodNum);
             
-            StringBuilder json = new StringBuilder("{");
+            // 2. 방금 2단계에서 새로 만든 DAO 호출 (스냅샷)
+            List<SettlementSnapshotDTO> snapList = SettlementSnapshotDAO.getInstance().getSnapshotsByPeriod(periodNum);
             
-            // 1. 스냅샷(정산 결과) 배열 조립
+            // 3. JSON 수동 조립 시작
+            StringBuilder json = new StringBuilder();
+            json.append("{"); 
+            
+            // --- [1] snapshots 배열 조립 ---
             json.append("\"snapshots\":[");
-            for (int i = 0; i < snapshots.size(); i++) {
-                SettlementSnapshotDTO s = snapshots.get(i);
+            for (int i = 0; i < snapList.size(); i++) {
+                SettlementSnapshotDTO s = snapList.get(i);
                 json.append(String.format(
                     "{\"payerNickname\":\"%s\", \"receiverNickname\":\"%s\", \"settleAmount\":%d}",
                     s.getPayerNickname(), s.getReceiverNickname(), s.getSettleAmount()
                 ));
-                if (i < snapshots.size() - 1) json.append(",");
+                if (i < snapList.size() - 1) json.append(",");
             }
-            json.append("],");
+            json.append("],"); 
             
-            // 2. 과거 지출 내역 배열 조립
+            // --- [2] transactions 배열 조립 (기존 데이터 활용) ---
             json.append("\"transactions\":[");
-            for (int i = 0; i < transactions.size(); i++) {
-                GroupTransactionDTO t = transactions.get(i);
+            for (int i = 0; i < transList.size(); i++) {
+                GroupTransactionDTO t = transList.get(i);
+                
+                // 메모에 쌍따옴표나 줄바꿈이 있을 경우를 대비한 안전 처리
                 String safeMemo = t.getTransMemo() != null ? t.getTransMemo().replace("\"", "\\\"").replace("\n", " ") : "";
                 
                 json.append(String.format(
-                    "{\"categoryName\":\"%s\", \"transMemo\":\"%s\", \"userNickname\":\"%s\", \"transAmount\":%d, \"transDate\":\"%s\"}",
-                    t.getCategoryName(), safeMemo, t.getUserNickname(), t.getTransAmount(), t.getTransDate()
+                    "{\"categoryName\":\"%s\", \"transMemo\":\"%s\", \"transDate\":\"%s\", \"userNickname\":\"%s\", \"transAmount\":%d}",
+                    t.getCategoryName(), safeMemo, t.getTransDate(), t.getUserNickname(), t.getTransAmount()
                 ));
-                if (i < transactions.size() - 1) json.append(",");
+                if (i < transList.size() - 1) json.append(",");
             }
-            json.append("]");
+            json.append("]"); 
             
-            json.append("}");
+            json.append("}"); 
+            
             out.print(json.toString());
+            
         } catch (Exception e) {
             e.printStackTrace();
-            out.print("{}");
+            out.print("{\"snapshots\":[], \"transactions\":[]}");
         } finally {
             out.flush();
         }
+        
         return null;
     }
     

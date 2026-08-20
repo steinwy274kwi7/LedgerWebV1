@@ -95,4 +95,27 @@ public class SettlementSnapshotDAO {
             DBManager.close(conn, null, null);
         }
     }
+    
+    // ==========================================================
+    // 과거 정산 스냅샷 조회 (재계산 없이 DB 박제본 조회)
+    // ==========================================================
+    public List<SettlementSnapshotDTO> getSnapshotsByPeriod(int periodNum) throws Exception {
+        List<SettlementSnapshotDTO> list = new ArrayList<>();
+        String sql = SqlManager.getSql("getSnapshotsByPeriod");
+        
+        try (Connection conn = DBManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, periodNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    SettlementSnapshotDTO dto = new SettlementSnapshotDTO();
+                    dto.setPayerNickname(rs.getString("PAYER_NICKNAME"));
+                    dto.setReceiverNickname(rs.getString("RECEIVER_NICKNAME"));
+                    dto.setSettleAmount(rs.getLong("SETTLE_AMOUNT"));
+                    list.add(dto);
+                }
+            }
+        }
+        return list;
+    }
+    
 }
