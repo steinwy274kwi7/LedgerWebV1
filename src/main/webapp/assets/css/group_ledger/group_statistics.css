@@ -1,0 +1,11 @@
+@charset "UTF-8";
+
+/* 부트스트랩 카드 모서리 둥글게 */
+.card {
+    border-radius: 12px;
+}
+
+/* 차트가 부모 영역을 벗어나지 않고 중앙 정렬되도록 처리 */
+.chart-container {
+    margin: 0 auto;
+}

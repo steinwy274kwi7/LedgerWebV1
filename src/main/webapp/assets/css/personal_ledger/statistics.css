@@ -1,0 +1,6 @@
+@charset "UTF-8";
+
+/* 부트스트랩 프로그레스 바 상태 전환 애니메이션 커스텀 */
+.progress-bar {
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease-in-out;
+}

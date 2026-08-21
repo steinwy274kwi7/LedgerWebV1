@@ -3,83 +3,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>나의 공동 가계부</title>
-    <style>
-        .container { width: 900px; margin: 40px auto; font-family: sans-serif; }
-        .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .header-area h2 { margin: 0; color: #333; }
-        .btn-create { background: #007BFF; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; text-decoration: none; }
-        .btn-search { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; text-decoration: none; }
-        .btn-search:hover { background: #218838; }
-        
-        .group-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        .group-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 20px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; position: relative; }
-        .group-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); border-color: #007BFF; }
-        
-        .group-title { font-size: 1.2em; font-weight: bold; color: #333; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .group-desc { font-size: 0.9em; color: #666; margin-bottom: 15px; height: 40px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .group-meta { font-size: 0.8em; color: #999; display: flex; justify-content: space-between; border-top: 1px solid #eee; padding-top: 10px; }
-        
-        .badge-owner { position: absolute; top: -10px; right: -10px; background: #FFC107; color: #000; font-size: 0.7em; font-weight: bold; padding: 5px 10px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .empty-msg { text-align: center; padding: 50px; color: #999; background: #f8f9fa; border-radius: 10px; grid-column: 1 / -1; }
-        
-        .btn-stats { 
-		    background: #6c757d; 
-		    color: white; 
-		    padding: 10px 20px; 
-		    border: none; 
-		    border-radius: 5px; 
-		    cursor: pointer; 
-		    font-weight: bold; 
-		    text-decoration: none; 
-		    display: inline-flex; 
-		    align-items: center; 
-		}
-		.btn-stats:hover { background: #5a6268; }
-    </style>
+    <meta charset="UTF-8">
+    <title>나의 공동 가계부 - 리스트</title>
+    <!-- Bootstrap 5 CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 커스텀 CSS -->
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/group_manage/groupList.css">
 </head>
-<body>
-    <div class="container">
-        <div class="header-area">
-		    <h2>나의 공동 가계부</h2>
-		    <div style="display: flex; gap: 10px;">
-                
-                <button class="btn-search" onclick="openSearchModal()">
-                    공개 가계부 구경하기
+<body class="bg-light">
+
+    <div class="container my-5" style="max-width: 1000px;">
+        <!-- 상단 헤더 영역 -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+            <h2 class="fw-bold text-dark m-0">나의 공동 가계부</h2>
+            
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-success fw-bold shadow-sm" onclick="openSearchModal()">
+                    🔍 공개 가계부 구경하기
                 </button>
+                <a href="${pageContext.request.contextPath}/group/statistics.do" class="btn btn-secondary fw-bold shadow-sm">
+                    📊 통계
+                </a>
+                <a href="${pageContext.request.contextPath}/group/createForm.do" class="btn btn-primary fw-bold shadow-sm">
+                    + 새 방 만들기
+                </a>
+            </div>
+        </div>
 
-		        <a href="${pageContext.request.contextPath}/group/statistics.do" class="btn-stats">
-		            공동 가계부 통계
-		        </a>
-		        <button class="btn-create" onclick="location.href='${pageContext.request.contextPath}/group/createForm.do'">
-		            + 새 그룹 만들기
-		        </button>
-		    </div>
-		</div>
-
-        <div class="group-grid">
+        <!-- 가계부 그룹 카드 그리드 영역 -->
+        <div class="row g-4">
             <c:choose>
+                <%-- 가입된 가계부가 없을 경우 --%>
                 <c:when test="${empty groupList}">
-                    <div class="empty-msg">
-                        <h3>아직 가입된 공동 가계부가 없습니다.</h3>
-                        <p>새로운 그룹을 만들거나, 초대 코드를 통해 그룹에 참여해 보세요!</p>
+                    <div class="col-12">
+                        <div class="text-center p-5 bg-white border rounded-3 shadow-sm text-muted">
+                            <h3 class="fw-bold mb-3">아직 가입된 공동 가계부가 없습니다.</h3>
+                            <p class="mb-0">새로운 그룹을 만들거나, 검색을 통해 다른 공개 가계부를 구경해 보세요!</p>
+                        </div>
                     </div>
                 </c:when>
                 
+                <%-- 가입된 가계부가 있을 경우 --%>
                 <c:otherwise>
                     <c:forEach var="group" items="${groupList}">
-                        <div class="group-card" onclick="location.href='${pageContext.request.contextPath}/group/ledger.do?groupNum=${group.groupNum}'">
-                            
-                            <c:if test="${group.groupOwnerNum == loginUser.userNum}">
-                                <div class="badge-owner">방장</div>
-                            </c:if>
+                        <!-- 카드 1개 (PC: 3열, 태블릿: 2열, 모바일: 1열 반응형) -->
+                        <div class="col-lg-4 col-md-6 col-sm-12">
+                            <div class="card h-100 shadow-sm custom-hover-card border-0" onclick="location.href='${pageContext.request.contextPath}/group/ledger.do?groupNum=${group.groupNum}'">
+                                
+                                <!-- 방장 뱃지 -->
+                                <c:if test="${group.groupOwnerNum == loginUser.userNum}">
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark border border-light shadow" style="font-size: 0.8rem; z-index: 10;">
+                                        👑 방장
+                                    </span>
+                                </c:if>
 
-                            <div class="group-title">${group.groupName}</div>
-                            <div class="group-desc">${empty group.groupDesc ? '설명이 없습니다.' : group.groupDesc}</div>
-                            
-                            <div class="group-meta">
-                                <span>멤버 ${group.memberCount}명</span>
-                                <span>개설일: ${group.createdAt}</span>
+                                <div class="card-body">
+                                    <h5 class="card-title fw-bold text-dark text-truncate mb-2">${group.groupName}</h5>
+                                    <p class="card-text text-secondary desc-truncate">
+                                        ${empty group.groupDesc ? '설명이 없습니다.' : group.groupDesc}
+                                    </p>
+                                </div>
+                                
+                                <div class="card-footer bg-white border-top border-light d-flex justify-content-between align-items-center">
+                                    <small class="text-muted fw-bold">👥 ${group.memberCount}명</small>
+                                    <small class="text-muted">📅 ${group.createdAt}</small>
+                                </div>
                             </div>
                         </div>
                     </c:forEach>
@@ -88,55 +76,42 @@
         </div>
     </div>
 
-    <div id="searchModal" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, 0); background:#fff; padding:25px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); width: 400px; z-index:1000;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-            <h3 style="margin:0;">공개 가계부 검색</h3>
-            <button onclick="closeSearchModal()" style="background:none; border:none; cursor:pointer; font-weight:bold; font-size:1.1em;">X</button>
+    <!-- 🌟 Bootstrap 5 공개 가계부 검색 모달 -->
+    <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold" id="searchModalLabel">🔍 공개 가계부 검색</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 검색 입력창 -->
+                    <div class="input-group mb-3">
+                        <input type="text" id="searchKeyword" class="form-control" placeholder="방 이름을 입력하세요" onkeypress="if(event.keyCode===13) searchGroups()">
+                        <button class="btn btn-primary fw-bold" type="button" onclick="searchGroups()">검색</button>
+                    </div>
+                    
+                    <!-- 검색 결과 리스트 -->
+                    <ul id="searchResultArea" class="list-group list-group-flush">
+                        <!-- JS에서 동적으로 채워짐 -->
+                        <li class="list-group-item text-center text-muted py-4 border-0">검색어를 입력해 주세요.</li>
+                    </ul>
+                </div>
+            </div>
         </div>
-        <div style="display:flex; gap:10px; margin-bottom: 15px;">
-            <input type="text" id="searchKeyword" placeholder="방 이름 검색" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;">
-            <button onclick="searchGroups()" style="padding:8px 15px; background:#007BFF; color:white; border:none; border-radius:4px; cursor:pointer;">검색</button>
-        </div>
-        <ul id="searchResultArea" style="list-style:none; padding:0; margin:0; max-height:300px; overflow-y:auto;">
-        </ul>
     </div>
 
+    <!-- JS 환경 변수 -->
     <script>
-    function openSearchModal() { document.getElementById('searchModal').style.display = 'block'; }
-    function closeSearchModal() { document.getElementById('searchModal').style.display = 'none'; }
-
-    function searchGroups() {
-        const keyword = document.getElementById('searchKeyword').value;
-        if (!keyword) return;
-
-        fetch('${pageContext.request.contextPath}/group/searchPublic.do?keyword=' + encodeURIComponent(keyword))
-        .then(res => res.json())
-        .then(data => {
-            const resultArea = document.getElementById('searchResultArea');
-            resultArea.innerHTML = '';
-            if(data.length === 0) {
-                resultArea.innerHTML = '<li style="text-align:center; padding:10px; color:#888;">검색 결과가 없습니다.</li>';
-                return;
-            }
-            data.forEach(g => {
-                let li = document.createElement('li');
-                li.style.cssText = "padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;";
-                
-                // 설명이 null일 경우 예외 처리
-                let desc = (g.groupDesc === 'null' || !g.groupDesc) ? '설명이 없습니다.' : g.groupDesc;
-
-                li.innerHTML = `
-                    <div style="width:70%;">
-                        <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${g.groupName}</strong>
-                        <span style="font-size:0.8em; color:#666; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${desc}</span>
-                    </div>
-                    <a href="${pageContext.request.contextPath}/group/ledger.do?groupNum=\${g.groupNum}" style="padding:5px 10px; background:#17a2b8; color:white; text-decoration:none; border-radius:3px; font-size:0.9em; white-space:nowrap;">구경하기</a>
-                `;
-                resultArea.appendChild(li);
-            });
-        })
-        .catch(err => console.error('검색 실패:', err));
-    }
+        window.AppConfig = { contextPath: '${pageContext.request.contextPath}' };
     </script>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 공통 AJAX 모듈 -->
+    <script src="${pageContext.request.contextPath}/assets/js/common/ajaxUtil.js"></script>
+    <!-- 분리된 커스텀 JS -->
+    <script src="${pageContext.request.contextPath}/assets/js/group_manage/groupList.js"></script>
+
 </body>
 </html>

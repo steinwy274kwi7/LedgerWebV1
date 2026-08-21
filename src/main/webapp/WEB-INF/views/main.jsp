@@ -3,8 +3,8 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%
+    // 로그인 체크 로직 유지
     UserDTO loginUser = (UserDTO) session.getAttribute("loginUser");
-
     if (loginUser == null) {
         response.sendRedirect(request.getContextPath() + "/user/loginForm.do");
         return;
@@ -15,210 +15,111 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>가계부 메인 화면</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <style>
-        #inviteModal {
-            display: none; 
-            position: absolute; 
-            top: 60px; 
-            right: 20px; 
-            width: 320px; 
-            background: white; 
-            border: 1px solid #ccc; 
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2); 
-            z-index: 1000; 
-            padding: 15px; 
-            border-radius: 8px;
-            max-height: 400px;
-    		overflow-y: auto;
-        }
-        
-        .chart-container {
-            width: 400px;
-            height: 400px;
-            margin: 20px auto;
-        }
-    </style>
+    <title>가계부 메인 대시보드</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 커스텀 CSS -->
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
 </head>
-<body>
+<body class="bg-light">
     <jsp:useBean id="now" class="java.util.Date" />
 
-    <h1>환영합니다, ${sessionScope.loginUser.userId}님!</h1>
-    
-    <a href="${pageContext.request.contextPath}/user/myPage.do">마이페이지</a><br>
-    <a href="${pageContext.request.contextPath}/user/logout.do">로그아웃</a><br>
-    <a href="${pageContext.request.contextPath}/personal/calendar.do">개인 가계부 이동</a><br>  
-    <a href="${pageContext.request.contextPath}/group/list.do">공동 가계부</a><br>
-    
-    <br><br>
-
-    <button onclick="openNotificationModal()" style="padding: 10px; cursor: pointer;">
-        초대 알림 확인
-    </button>
-
-    <div id="inviteModal">
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-            <h3 style="margin: 0; font-size: 16px;">새로운 초대장</h3>
-            <button onclick="closeNotificationModal()" style="border: none; background: none; font-size: 16px; cursor: pointer;">X</button>
+    <div class="container my-5" style="max-width: 900px;">
+        
+        <!-- 1. 상단 환영 메시지 및 알림 버튼 -->
+        <div class="d-flex justify-content-between align-items-center mb-4 p-4 bg-white rounded shadow-sm border-start border-5 border-primary">
+            <h2 class="fw-bold m-0 text-dark">
+                환영합니다, <span class="text-primary">${sessionScope.loginUser.userId}</span>님! 🎉
+            </h2>
+            <button class="btn btn-warning fw-bold shadow-sm position-relative" onclick="openNotificationModal()">
+                🔔 초대 알림 확인
+                <!-- 알림이 있을 때 띄울 뱃지 (옵션) -->
+                <span id="inviteBadge" class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle" style="display:none;"></span>
+            </button>
         </div>
-        
-        <div id="inviteList"></div>
-    </div>
-    
-    <br><hr><br>
-    
-    <h2 style="text-align: center;"><fmt:formatDate value="${now}" pattern="yyyy년 M월" /> 내역 비율</h2>
-    
-    <div style="text-align: center;">
-        <button onclick="loadChartData('E')">지출 차트 보기</button>
-        <button onclick="loadChartData('I')">수입 차트 보기</button>
+
+        <div class="row g-4 mb-4">
+            <!-- 2. 퀵 메뉴 (좌측) -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-dark text-white fw-bold text-center">
+                        🚀 퀵 메뉴
+                    </div>
+                    <div class="card-body d-flex flex-column gap-2">
+                        <a href="${pageContext.request.contextPath}/personal/calendar.do" class="btn btn-outline-primary fw-bold w-100">📔 개인 가계부 이동</a>
+                        <a href="${pageContext.request.contextPath}/group/list.do" class="btn btn-outline-success fw-bold w-100">👥 공동 가계부 이동</a>
+                        <hr class="my-2">
+                        <a href="${pageContext.request.contextPath}/user/myPage.do" class="btn btn-light fw-bold w-100 border">👤 마이페이지</a>
+                        <a href="${pageContext.request.contextPath}/user/logout.do" class="btn btn-light fw-bold w-100 border text-danger">🚪 로그아웃</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 차트 영역 (우측) -->
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4 text-center">
+                        <h4 class="fw-bold text-dark mb-4">
+                            📊 <fmt:formatDate value="${now}" pattern="yyyy년 M월" /> 카테고리별 비율
+                        </h4>
+                        
+                        <!-- 🌟 수입(빨강), 지출(파랑) 색상 규칙 적용 -->
+                        <div class="btn-group mb-3 shadow-sm" role="group">
+                            <input type="radio" class="btn-check" name="chartType" id="btnChartExp" autocomplete="off" checked onclick="loadChartData('E')">
+                            <label class="btn btn-outline-primary fw-bold px-4" for="btnChartExp">지출 차트</label>
+
+                            <input type="radio" class="btn-check" name="chartType" id="btnChartInc" autocomplete="off" onclick="loadChartData('I')">
+                            <label class="btn btn-outline-danger fw-bold px-4" for="btnChartInc">수입 차트</label>
+                        </div>
+
+                        <div class="chart-container mx-auto" style="position: relative; height: 300px; width: 100%; max-width: 400px;">
+                            <canvas id="myPieChart"></canvas>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <a href="${pageContext.request.contextPath}/personal/statistics.do" class="btn btn-secondary fw-bold rounded-pill px-4 shadow-sm">
+                                📈 통계 더 보기
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="chart-container">
-        <canvas id="myPieChart"></canvas>
+    <!-- 🌟 초대 알림 모달 -->
+    <div class="modal fade" id="inviteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold">📨 새로운 초대장</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <ul id="inviteList" class="list-group list-group-flush">
+                        <!-- JS에서 동적 렌더링 -->
+                        <li class="list-group-item text-center p-4 text-muted">로딩 중...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <div style="text-align: center; margin-top: 20px;">
-        <button onclick="location.href='${pageContext.request.contextPath}/personal/statistics.do'" style="padding: 10px 20px; font-weight: bold; cursor: pointer;">
-            통계 더 보기
-        </button>
-    </div>
-    
+
+    <!-- JS 백엔드 환경 설정 -->
     <script>
-        function openNotificationModal() {
-            document.getElementById('inviteModal').style.display = 'block';
-            const listDiv = document.getElementById('inviteList');
-            listDiv.innerHTML = '<p style="text-align:center;">로딩 중...</p>';
-
-            fetch('${pageContext.request.contextPath}/group/getInvitations.do')
-                .then(response => {
-                    if (!response.ok) throw new Error('서버 에러 발생');
-                    return response.json(); 
-                }) 
-                .then(data => {
-                    listDiv.innerHTML = ''; 
-
-                    if(data.length === 0) {
-                        listDiv.innerHTML = '<p style="text-align:center; color:#888;">도착한 초대장이 없습니다.</p>';
-                        return;
-                    }
-
-                    data.forEach(item => {
-                        let html = `
-                            <div style="margin-bottom: 10px; padding: 10px; background: #f9f9f9; border-radius: 5px;">
-                                <p style="margin: 0 0 10px 0; font-size: 14px;">
-                                    <b>\${item.inviterName}</b>님이 <b>\${item.groupName}</b>에 초대했습니다.
-                                </p>
-                                <div style="display: flex; gap: 5px;">
-                                    <button onclick="respondInvite(\${item.inviteNum}, 'A')" style="flex: 1; padding: 5px; background: #4caf50; color: white; border: none; cursor: pointer;">수락</button>
-                                    <button onclick="respondInvite(\${item.inviteNum}, 'R')" style="flex: 1; padding: 5px; background: #f44336; color: white; border: none; cursor: pointer;">거절</button>
-                                </div>
-                            </div>
-                        `;
-                        listDiv.innerHTML += html; 
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    listDiv.innerHTML = '<p style="text-align:center; color:red;">데이터를 불러올 수 없습니다.</p>';
-                });
-        }
-
-        function closeNotificationModal() {
-            document.getElementById('inviteModal').style.display = 'none';
-        }
-
-        function respondInvite(inviteNum, status) {
-            const actionName = (status === 'A') ? '수락' : '거절';
-            
-            if (!confirm('정말 이 초대를 ' + actionName + '하시겠습니까?')) {
-                return; 
-            }
-
-            fetch('${pageContext.request.contextPath}/group/respondInvite.do', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'inviteNum=' + inviteNum + '&status=' + status
-            })
-                .then(response => {
-                    if (!response.ok) throw new Error('서버 에러');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                    	alert('초대를 ' + actionName + '했습니다.');
-                        openNotificationModal(); 
-                    } else {
-                        alert('처리에 실패했습니다.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('오류가 발생했습니다.');
-                });
-        }
-        
-        let myChartInstance = null; 
-
-        function loadChartData(type, month = '') {
-            
-            fetch('${pageContext.request.contextPath}/personal/getChartData.do?type=' + type + '&month=' + month)
-                .then(response => {
-                    if (!response.ok) throw new Error('서버 에러');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.length === 0) {
-                        alert('해당 달의 내역이 없습니다!');
-                        if (myChartInstance != null) {
-                            myChartInstance.destroy();
-                        }
-                        return;
-                    }
-
-                    const labels = data.map(item => item.categoryName); 
-                    const amounts = data.map(item => item.totalAmount); 
-
-                    if (myChartInstance != null) {
-                        myChartInstance.destroy();
-                    }
-
-                    const ctx = document.getElementById('myPieChart').getContext('2d');
-                    myChartInstance = new Chart(ctx, {
-                        type: 'pie', 
-                        data: {
-                            labels: labels, 
-                            datasets: [{
-                                data: amounts, 
-                                backgroundColor: [
-                                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-                                    '#FF9F40', '#C9CBCF', '#84FF63', '#E636EB', '#56FFCE'
-                                ]
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            plugins: {
-                                legend: { position: 'bottom' } 
-                            }
-                        }
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('차트 데이터를 불러오는 데 실패했습니다.');
-                });
-        }
-
-        window.onload = function() {
-            loadChartData('E'); 
+        window.AppConfig = {
+            contextPath: '${pageContext.request.contextPath}'
         };
     </script>
+
+    <!-- 외부 라이브러리 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 🌟 공통 AJAX 모듈 -->
+    <script src="${pageContext.request.contextPath}/assets/js/common/ajaxUtil.js"></script>
+    <!-- 분리된 커스텀 JS -->
+    <script src="${pageContext.request.contextPath}/assets/js/main.js"></script>
 
 </body>
 </html>

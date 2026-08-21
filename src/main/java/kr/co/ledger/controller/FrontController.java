@@ -2,6 +2,7 @@ package kr.co.ledger.controller;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -24,7 +25,7 @@ public class FrontController extends HttpServlet{
 	    
 	    Properties prop = new Properties();
 	    
-	    try (java.io.InputStream is = config.getServletContext().getResourceAsStream(configFile)) {
+	    try (InputStream is = config.getServletContext().getResourceAsStream(configFile)) {
 	        
 	        if (is == null) {
 	            System.out.println("FrontController - " + configFile + "파일이 프로젝트 경로에 존재하지 않음");

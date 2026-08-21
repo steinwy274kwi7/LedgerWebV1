@@ -121,11 +121,19 @@ public class GroupManageAction implements Action {
         return "/views/group_manage/createForm.jsp";
     }
 
-    // 실제 그룹 생성 처리
+    // 실제 그룹 생성 처리 (AJAX 전용으로 수정)
     private String createGroup(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
+        
+        // 1. 응답 타입을 JSON으로 설정 (다른 AJAX 메서드들과 동일)
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        // 2. 비로그인 처리 (JSON 에러 반환)
         if (loginUser == null) {
-            return "redirect:" + request.getContextPath() + "/user/loginForm.do";
+            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
+            out.flush();
+            return null; // FrontController 화면 이동 막음
         }
 
         try {
@@ -145,14 +153,27 @@ public class GroupManageAction implements Action {
             dto.setGroupOpenYn(groupOpenYn);
             dto.setGroupOwnerNum(loginUser.getUserNum());
 
+            // 3. 서비스 호출
+            // 💡 TIP: 만약 Service의 createGroup이 생성된 방 번호(int)를 반환하도록 설계되어 있다면
+            // int groupNum = GroupManageService.getInstance().createGroup(dto);
+            // 처럼 받아서 JSON에 같이 넘겨주면 아주 좋습니다. (현재는 반환값이 없다고 가정하고 작성했습니다)
             GroupManageService.getInstance().createGroup(dto);
 
-            return "redirect:" + request.getContextPath() + "/group/list.do";
+            // 4. 성공 응답 JSON 출력
+            out.print("{\"success\": true}");
             
+            // (참고) 방 번호를 리턴받을 수 있다면 위 코드를 지우고 아래처럼 응답하세요.
+            // out.print("{\"success\": true, \"groupNum\": " + groupNum + "}");
+
         } catch (Exception e) {
-            request.setAttribute("msg", e.getMessage());
-            return "/views/group_manage/createForm.jsp";
+            // 5. 실패(예외) 응답 JSON 출력
+            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        } finally {
+            out.flush();
         }
+        
+        // 6. View 경로 대신 null 반환 (Redirect, Forward 무시)
+        return null;
     }
     
     // 그룹 설정 업데이트

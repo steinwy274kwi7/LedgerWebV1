@@ -1,0 +1,32 @@
+@charset "UTF-8";
+
+/* 부드러운 카드 모서리와 그림자 효과 */
+.custom-card {
+    border-radius: 15px;
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+.custom-card:hover {
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+}
+
+/* 알림창 스타일 미세 조정 */
+.custom-alert {
+    border-radius: 12px;
+}
+
+/* 입력창 포커스 효과 */
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* 하단 텍스트 링크 호버 효과 */
+.hover-primary {
+    transition: color 0.2s;
+}
+
+.hover-primary:hover {
+    color: #0d6efd !important;
+    font-weight: bold;
+}

@@ -5,170 +5,82 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>통계 대시보드</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .ratio-container {
-            width: 400px; padding: 20px; margin: 20px auto; 
-            border: 1px solid #ddd; border-radius: 8px; background: #fff;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .progress-bar-bg {
-            width: 100%; height: 24px; background: #eee; 
-            border-radius: 12px; overflow: hidden; margin: 15px 0;
-            position: relative;
-        }
-        .progress-bar-fill {
-            height: 100%; background: #4caf50; width: 0%; 
-            transition: width 0.8s ease-out;
-        }
-        .over-budget { background: #f44336; }
-    </style>
+    <title>개인 가계부 - 통계 대시보드</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 커스텀 CSS -->
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/personal_ledger/statistics.css">
 </head>
-<body>
+<body class="bg-light">
 
     <jsp:useBean id="now" class="java.util.Date" />
 
-    <h2 style="text-align: center;"><fmt:formatDate value="${now}" pattern="yyyy년 M월" /> 흑자/적자 분석</h2>
-    
-    <div style="text-align: center;">
-        <button onclick="loadRatioData(''); loadTrendData('');" style="padding: 10px; cursor: pointer;">
-            통계 데이터 모두 불러오기
-        </button>
-    </div>
-
-    <div class="ratio-container">
-        <h3 style="margin-top: 0;">이번 달 예산 현황</h3>
-        <p>수입: <b id="uiIncome">0</b>원</p>
-        <p>지출: <b id="uiExpense">0</b>원</p>
+    <div class="container my-5" style="max-width: 1100px;">
         
-        <div class="progress-bar-bg">
-            <div id="uiProgressBar" class="progress-bar-fill"></div>
+        <!-- 상단 헤더 영역 -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-2">
+            <h2 class="fw-bold text-dark m-0">📊 <fmt:formatDate value="${now}" pattern="yyyy년 M월" /> 흑자/적자 분석</h2>
+            <button class="btn btn-primary fw-bold shadow-sm" onclick="loadRatioData(''); loadTrendData('');">
+                🔄 통계 새로고침
+            </button>
         </div>
-        
-        <h2 id="uiPercent" style="text-align: center; margin: 10px 0;">0%</h2>
-        <p id="uiMessage" style="text-align: center; color: #555; font-size: 14px; font-weight: bold;"></p>
+
+        <div class="row g-4">
+            <!-- 1. 예산 현황 카드 (좌측) -->
+            <div class="col-lg-4 col-md-12">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4 d-flex flex-column justify-content-center">
+                        <h4 class="card-title fw-bold text-dark mb-4 text-center">이번 달 예산 현황</h4>
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-2 fs-5">
+                            <span class="text-secondary fw-bold">수입</span>
+                            <span class="text-danger fw-bold"><span id="uiIncome">0</span>원</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-4 fs-5">
+                            <span class="text-secondary fw-bold">지출</span>
+                            <span class="text-primary fw-bold"><span id="uiExpense">0</span>원</span>
+                        </div>
+                        
+                        <!-- Bootstrap Progress Bar -->
+                        <div class="progress mb-3 shadow-sm" style="height: 28px; border-radius: 14px;">
+                            <div id="uiProgressBar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;"></div>
+                        </div>
+                        
+                        <h1 id="uiPercent" class="text-center fw-bold text-dark my-3 display-5">0%</h1>
+                        <p id="uiMessage" class="text-center text-muted fw-bold m-0 fs-5"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 추이 차트 카드 (우측) -->
+            <div class="col-lg-8 col-md-12">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h4 class="card-title fw-bold text-dark mb-4 text-center">최근 6개월 수입/지출 추이</h4>
+                        <div class="chart-container" style="position: relative; height: 350px; width: 100%;">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-	<div class="ratio-container" style="width: 600px;">
-	    <h3 style="margin-top: 0; text-align: center;">최근 6개월 수입/지출 추이</h3>
-	    <canvas id="trendChart"></canvas>
-	</div>
-	
+    <!-- JS 백엔드 환경 설정 -->
     <script>
-        function loadRatioData(month = '') {
-            fetch('${pageContext.request.contextPath}/personal/getRatioData.do?month=' + month)
-                .then(response => {
-                    if (!response.ok) throw new Error('서버 통신 에러');
-                    return response.json();
-                })
-                .then(data => {
-                    document.getElementById('uiIncome').innerText = data.totalIncome.toLocaleString();
-                    document.getElementById('uiExpense').innerText = data.totalExpense.toLocaleString();
-                    
-                    const bar = document.getElementById('uiProgressBar');
-                    const percentText = document.getElementById('uiPercent');
-                    
-                    document.getElementById('uiMessage').innerText = data.statusMessage;
-
-                    if (data.expenseRatio === -1) {
-                        bar.style.width = '100%';
-                        bar.classList.add('over-budget'); 
-                        percentText.innerText = "계산 불가 (적자)";
-                    } else {
-                        let widthPercent = data.expenseRatio > 100 ? 100 : data.expenseRatio;
-                        bar.style.width = widthPercent + '%';
-                        percentText.innerText = data.expenseRatio + '%';
-
-                        if (data.expenseRatio > 100) {
-                            bar.classList.add('over-budget');
-                        } else {
-                            bar.classList.remove('over-budget');
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('데이터를 불러오지 못했습니다.');
-                });
-        }
-        
-        let trendChartInstance = null;
-
-        function loadTrendData(month = '') {
-            fetch('${pageContext.request.contextPath}/personal/getTrendData.do?month=' + month)
-                .then(response => {
-                    if (!response.ok) throw new Error('서버 통신 에러');
-                    return response.json();
-                })
-                .then(data => {
-                    const labels = data.map(item => item.month);
-                    const incomes = data.map(item => item.totalIncome);
-                    const expenses = data.map(item => item.totalExpense);
-
-                    if (trendChartInstance != null) {
-                        trendChartInstance.destroy();
-                    }
-
-                    const ctx = document.getElementById('trendChart').getContext('2d');
-                    trendChartInstance = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [
-                                {
-                                    type: 'line',
-                                    label: '수입 추세',
-                                    data: incomes,
-                                    borderColor: '#36A2EB',
-                                    borderWidth: 2,
-                                    fill: false,
-                                    tension: 0.3
-                                },
-                                {
-                                    type: 'line', 
-                                    label: '지출 추세',
-                                    data: expenses,
-                                    borderColor: '#FF6384',
-                                    borderWidth: 2,
-                                    fill: false,
-                                    tension: 0.3
-                                },
-                                {
-                                    type: 'bar',
-                                    label: '수입',
-                                    data: incomes,
-                                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                                    borderRadius: 4
-                                },
-                                {
-                                    type: 'bar',
-                                    label: '지출',
-                                    data: expenses,
-                                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                                    borderRadius: 4
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            scales: {
-                                y: { beginAtZero: true }
-                            }
-                        }
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('추이 데이터를 불러오지 못했습니다.');
-                });
-        }
-        
-        window.onload = function() {
-            loadRatioData();
-            loadTrendData();
+        window.AppConfig = {
+            contextPath: '${pageContext.request.contextPath}'
         };
-        
     </script>
+
+    <!-- 외부 라이브러리 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 🌟 공통 AJAX 모듈 -->
+    <script src="${pageContext.request.contextPath}/assets/js/common/ajaxUtil.js"></script>
+    <!-- 분리된 커스텀 JS -->
+    <script src="${pageContext.request.contextPath}/assets/js/personal_ledger/statistics.js"></script>
+
 </body>
 </html>

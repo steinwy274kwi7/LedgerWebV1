@@ -1,0 +1,18 @@
+@charset "UTF-8";
+
+/* 퀵 메뉴 호버 효과 */
+.card .btn {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+}
+
+/* 차트 컨테이너 최적화 */
+.chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

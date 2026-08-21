@@ -40,4 +40,16 @@
         <listener-class>kr.co.ledger.listener.DormantBatchListener</listener-class>
     </listener>
     
+    <!-- 404 에러 (Page Not Found) -->
+	<error-page>
+	    <error-code>404</error-code>
+	    <location>/WEB-INF/views/common/404.jsp</location>
+	</error-page>
+	
+	<!-- 500 에러 (Internal Server Error) -->
+	<error-page>
+	    <error-code>500</error-code>
+	    <location>/WEB-INF/views/common/500.jsp</location>
+	</error-page>
+    
 </web-app>

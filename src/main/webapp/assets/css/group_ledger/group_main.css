@@ -1,0 +1,56 @@
+@charset "UTF-8";
+
+/* 달력 뷰 CSS Grid */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    text-align: center;
+}
+
+.calendar-header {
+    font-weight: bold;
+    padding: 10px;
+    background-color: #f1f3f5;
+    border-radius: 6px;
+    color: #495057;
+}
+
+.calendar-empty {
+    padding: 10px;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+}
+
+.calendar-day {
+    padding: 10px;
+    min-height: 100px;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    text-align: left;
+    border-radius: 6px;
+    transition: box-shadow 0.2s;
+}
+
+.calendar-day:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.day-number {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #343a40;
+}
+
+/* 커스텀 버튼 색상 */
+.btn-custom-purple {
+    background-color: #6f42c1;
+    color: white;
+    border: none;
+}
+.btn-custom-purple:hover {
+    background-color: #5a32a3;
+    color: white;
+}

@@ -1,0 +1,26 @@
+@charset "UTF-8";
+
+/* 정산 방식 선택용 커스텀 라디오 카드 */
+.custom-radio-label {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    background-color: #fff;
+}
+
+.custom-radio-label:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+}
+
+/* 라디오 버튼이 체크되었을 때 라벨 스타일 변경 */
+.btn-check:checked + .custom-radio-label {
+    border-color: #0d6efd;
+    background-color: #f0f8ff; /* 아주 연한 파란색 배경 */
+}
+
+.btn-check:checked + .custom-radio-label .radio-title {
+    color: #0d6efd;
+    font-weight: bold;
+}

@@ -1,0 +1,16 @@
+@charset "UTF-8";
+
+/* 부드러운 카드 모서리와 그림자 효과 */
+.custom-card {
+    border-radius: 15px;
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+.custom-card:hover {
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+}
+
+/* 테이블 폰트 미세 조정 */
+.table th, .table td {
+    font-size: 0.95rem;
+}

@@ -3,82 +3,91 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>새 공동 가계부 만들기</title>
-    <style>
-        .form-container { width: 500px; margin: 50px auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-family: sans-serif; }
-        .form-container h2 { text-align: center; color: #333; margin-bottom: 30px; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; }
-        .form-group input[type="text"], .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .radio-card { display: flex; gap: 15px; }
-        .radio-card label { flex: 1; border: 1px solid #ddd; padding: 15px; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; }
-        .radio-card input[type="radio"] { display: none; }
-        .radio-card input[type="radio"]:checked + div { color: #007BFF; font-weight: bold; }
-        .radio-card label:has(input[type="radio"]:checked) { border-color: #007BFF; background: #f0f8ff; }
-        .btn-submit { width: 100%; background: #28a745; color: white; border: none; padding: 12px; font-size: 1.1em; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; }
-        .btn-cancel { width: 100%; background: #6c757d; color: white; border: none; padding: 12px; font-size: 1.1em; border-radius: 5px; cursor: pointer; margin-top: 10px; text-decoration: none; display: block; text-align: center; box-sizing: border-box; }
-    </style>
+    <!-- Bootstrap 5 CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 커스텀 CSS -->
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/group_manage/createForm.css">
 </head>
-<body>
-    <div class="form-container">
-        <h2>✨ 새 공동 가계부 만들기</h2>
-        
-        <c:if test="${not empty msg}">
-            <div style="color: red; text-align: center; margin-bottom: 15px; font-weight: bold;">${msg}</div>
-        </c:if>
+<body class="bg-light">
 
-        <form action="${pageContext.request.contextPath}/group/create.do" method="post" onsubmit="return validateForm()">
-            
-            <div class="form-group">
-                <label>방 이름 (최대 20자)</label>
-                <input type="text" name="groupName" id="groupName" maxlength="20" placeholder="예: ✈️ 제주도 여행계, 🏠 자취방" required>
+    <div class="container mt-5">
+        <div class="card shadow-sm mx-auto border-0" style="max-width: 550px; border-radius: 12px;">
+            <div class="card-body p-5">
+                <h2 class="text-center fw-bold mb-4 text-dark">✨ 새 공동 가계부 만들기</h2>
+                
+                <!-- 기존 JSP 렌더링 에러 메시지(msg) 공간은 남겨두지만, AJAX 처리 시에는 커스텀 Alert을 사용합니다 -->
+                <c:if test="${not empty msg}">
+                    <div class="alert alert-danger text-center fw-bold py-2 mb-4" role="alert">
+                        ${msg}
+                    </div>
+                </c:if>
+
+                <!-- 🌟 변경 포인트: action과 method 속성을 지우고, id="createGroupForm"을 부여 -->
+                <form id="createGroupForm">
+                    
+                    <div class="mb-4">
+                        <label for="groupName" class="form-label fw-bold text-secondary">방 이름 <span class="text-danger">*</span> (최대 20자)</label>
+                        <input type="text" name="groupName" id="groupName" class="form-control form-control-lg fs-6" maxlength="20" placeholder="예: ✈️ 제주도 여행계, 🏠 자취방" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="groupDesc" class="form-label fw-bold text-secondary">간단한 설명 (선택)</label>
+                        <textarea name="groupDesc" id="groupDesc" class="form-control" rows="3" maxlength="150" placeholder="어떤 목적으로 사용하는 방인지 적어주세요."></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary mb-3">정산 방식 선택</label>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="groupType" id="typeM" value="M" checked>
+                                <label class="custom-radio-label w-100 h-100 p-3 text-center" for="typeM">
+                                    <div class="radio-title fs-6 mb-1">📅 매월 정산형</div>
+                                    <small class="text-muted fw-normal">월마다 모임비/회비를 정산해요</small>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="groupType" id="typeI" value="I">
+                                <label class="custom-radio-label w-100 h-100 p-3 text-center" for="typeI">
+                                    <div class="radio-title fs-6 mb-1">💸 자유 정산형</div>
+                                    <small class="text-muted fw-normal">건별로 자유롭게 쓰고 1/N 해요</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-5">
+                        <label for="groupOpenYn" class="form-label fw-bold text-secondary">공개 여부 (검색 허용)</label>
+                        <select name="groupOpenYn" id="groupOpenYn" class="form-select form-select-lg fs-6">
+                            <option value="N">비공개 (초대로만 참여 가능)</option>
+                            <option value="Y">공개 (아이디 검색으로 방 노출)</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <!-- 버튼 타입을 submit으로 유지하여 브라우저 기본 required 유효성 검사를 활용 -->
+                        <button type="submit" class="btn btn-success btn-lg fw-bold">만들기</button>
+                        <a href="${pageContext.request.contextPath}/group/list.do" class="btn btn-secondary btn-lg">취소</a>
+                    </div>
+                </form>
             </div>
-
-            <div class="form-group">
-                <label>간단한 설명 (선택)</label>
-                <textarea name="groupDesc" rows="3" maxlength="150" placeholder="어떤 목적으로 사용하는 방인지 적어주세요."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label>정산 방식 선택</label>
-                <div class="radio-card">
-                    <label>
-                        <input type="radio" name="groupType" value="M" checked>
-                        <div>📅 매월 정산형<br><span style="font-size:0.8em; color:#888; font-weight:normal;">월마다 모임비/회비를 정산해요</span></div>
-                    </label>
-                    <label>
-                        <input type="radio" name="groupType" value="I">
-                        <div>💸 자유 정산형<br><span style="font-size:0.8em; color:#888; font-weight:normal;">건별로 자유롭게 쓰고 1/N 해요</span></div>
-                    </label>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>공개 여부 (검색 허용)</label>
-                <select name="groupOpenYn" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
-                    <option value="N">비공개 (초대로만 참여 가능)</option>
-                    <option value="Y">공개 (아이디 검색으로 방 노출)</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn-submit">만들기</button>
-            <a href="${pageContext.request.contextPath}/group/list.do" class="btn-cancel">취소</a>
-        </form>
+        </div>
     </div>
 
+    <!-- JS 백엔드 환경 설정 -->
     <script>
-        function validateForm() {
-            const name = document.getElementById('groupName').value.trim();
-            if (!name) {
-                alert("방 이름을 입력해 주세요.");
-                return false;
-            }
-            if (name.length > 20) {
-                alert("방 이름은 20자를 초과할 수 없습니다.");
-                return false;
-            }
-            return true;
-        }
+        window.AppConfig = {
+            contextPath: '${pageContext.request.contextPath}'
+        };
     </script>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 공통 AJAX 모듈 -->
+    <script src="${pageContext.request.contextPath}/assets/js/common/ajaxUtil.js"></script>
+    <!-- 분리된 커스텀 JS 연결 -->
+    <script src="${pageContext.request.contextPath}/assets/js/group_manage/createForm.js"></script>
+
 </body>
 </html>
