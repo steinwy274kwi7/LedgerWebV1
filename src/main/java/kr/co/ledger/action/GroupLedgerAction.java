@@ -29,7 +29,7 @@ public class GroupLedgerAction implements Action {
         String methodName = command.substring(command.lastIndexOf("/") + 1, command.lastIndexOf(".")).trim();
         
         return switch (methodName) {
-            case "statistics" -> "/views/group_ledger/group_statistics.jsp"; 
+            case "statistics"           -> "/views/group_ledger/group_statistics.jsp"; 
 
             case "getCategoryChartData" -> getCategoryChartData(request, response);
             case "getTrendData"         -> getTrendData(request, response);
@@ -49,45 +49,50 @@ public class GroupLedgerAction implements Action {
         };
     }
 
-    // 그룹 카테고리 합계
-    private String getCategoryChartData(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    // ==========================================================
+    // 🌟 [리팩토링] 공통 JSON 응답 헬퍼 메서드 (반복 코드 제거용)
+    // ==========================================================
+    private String sendJson(HttpServletResponse response, String jsonString) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        out.print(jsonString != null ? jsonString : "[]");
+        out.flush();
+        return null;
+    }
 
+    private String sendAjaxResult(HttpServletResponse response, boolean success, String message) throws Exception {
+        // 메시지 내 따옴표 등 특수문자로 인한 JSON 파싱 에러 방지
+        String safeMessage = message != null ? message.replace("\"", "\\\"").replace("\n", " ") : "";
+        String jsonString = "{\"success\": " + success + ", \"message\": \"" + safeMessage + "\"}";
+        return sendJson(response, jsonString);
+    }
+    // ==========================================================
+
+    // 그룹 카테고리 합계 (차트)
+    private String getCategoryChartData(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
         if (loginUser == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
             return null;
         }
-        int myUserNum = loginUser.getUserNum();
         
         String targetMonth = request.getParameter("month");
-        if (targetMonth == null || targetMonth.isEmpty()) {
-            targetMonth = YearMonth.now().toString(); 
-        }
+        if (targetMonth == null || targetMonth.isEmpty()) targetMonth = YearMonth.now().toString(); 
 
-        List<ChartDTO> chartList = GroupLedgerService.getInstance().getAllMyGroupCategorySumForChart(myUserNum, targetMonth);
+        List<ChartDTO> chartList = GroupLedgerService.getInstance().getAllMyGroupCategorySumForChart(loginUser.getUserNum(), targetMonth);
 
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        StringBuilder json = new StringBuilder();
-        
-        json.append("[");
+        StringBuilder json = new StringBuilder("[");
         for (int i = 0; i < chartList.size(); i++) {
             ChartDTO dto = chartList.get(i);
-            json.append("{");
-            json.append("\"categoryName\":\"").append(dto.getCategoryName()).append("\",");
-            json.append("\"totalAmount\":").append(dto.getTotalAmount());
-            json.append("}");
+            json.append(String.format("{\"categoryName\":\"%s\", \"totalAmount\":%d}", dto.getCategoryName(), dto.getTotalAmount()));
             if (i < chartList.size() - 1) json.append(",");
         }
         json.append("]");
         
-        out.print(json.toString());
-        out.flush();
-        
-        return null;
+        return sendJson(response, json.toString());
     }
     
-    // 그룹 6개월 추이
+    // 그룹 6개월 추이 (차트)
     private String getTrendData(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
         if (loginUser == null) {
@@ -95,38 +100,24 @@ public class GroupLedgerAction implements Action {
             return null;
         }
 
-        int myUserNum = loginUser.getUserNum();
         String targetMonth = request.getParameter("month");
-        
-        if(targetMonth == null || targetMonth.isEmpty()) {
-            targetMonth = YearMonth.now().toString();
-        }
+        if(targetMonth == null || targetMonth.isEmpty()) targetMonth = YearMonth.now().toString();
 
-        List<TrendDTO> trendList = GroupLedgerService.getInstance().getRecent6MonthsGroupTrend(myUserNum, targetMonth);
+        List<TrendDTO> trendList = GroupLedgerService.getInstance().getRecent6MonthsGroupTrend(loginUser.getUserNum(), targetMonth);
 
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        StringBuilder json = new StringBuilder();
-        
-        json.append("[");
+        StringBuilder json = new StringBuilder("[");
         for (int i = 0; i < trendList.size(); i++) {
             TrendDTO dto = trendList.get(i);
-            json.append("{");
-            json.append("\"month\":\"").append(dto.getMonth()).append("\",");
-            json.append("\"totalExpense\":").append(dto.getTotalExpense());
-            json.append("}");
+            json.append(String.format("{\"month\":\"%s\", \"totalExpense\":%d}", dto.getMonth(), dto.getTotalExpense()));
             if (i < trendList.size() - 1) json.append(",");
         }
         json.append("]");
         
-        out.print(json.toString());
-        out.flush();
-        
-        return null;
+        return sendJson(response, json.toString());
     }
     
+    // 🌟 [리팩토링] 그룹 가계부 메인 화면 이동 (alert.jsp 적용)
     private String getGroupLedgerMain(HttpServletRequest request, HttpServletResponse response) throws Exception {
-
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
         if (loginUser == null) {
             return "redirect:" + request.getContextPath() + "/user/loginForm.do";
@@ -138,30 +129,17 @@ public class GroupLedgerAction implements Action {
         }
 
         int groupNum = Integer.parseInt(groupNumStr);
-
         GroupDTO group = GroupManageService.getInstance().getGroupInfo(groupNum);
+        boolean isMember = GroupDAO.getInstance().isUserAlreadyInGroupOrInvited(groupNum, loginUser.getUserNum(), "checkAlreadyMember");
         
-        GroupDAO dao = GroupDAO.getInstance();
-        
-        boolean isMember = dao.isUserAlreadyInGroupOrInvited(groupNum, loginUser.getUserNum(), "checkAlreadyMember");
-        
-        // 멤버가 아닌데 비공개 방(N)에 접근하려 하면 차단
+        // 🌟 더 이상 PrintWriter를 쓰지 않고 공통 alert.jsp로 넘깁니다!
         if (!isMember && "N".equals(group.getGroupOpenYn())) {
-            
-            response.setContentType("text/html; charset=UTF-8");
-            PrintWriter out = response.getWriter();
-            out.println("<script>");
-            out.println("alert('비공개 그룹이거나 접근 권한이 없습니다.');");
-            out.println("location.href='" + request.getContextPath() + "/group/list.do';");
-            out.println("</script>");
-            out.flush();
-            return null;
+            request.setAttribute("msg", "비공개 그룹이거나 접근 권한이 없습니다.");
+            request.setAttribute("url", "/group/list.do");
+            return "/views/common/alert.jsp"; // ViewResolver 경로에 맞게 (필요시 /WEB-INF/ 추가)
         }
         
-        // JSP에서 버튼들을 숨기기 위해 멤버 여부(isMember) 전달
         request.setAttribute("isMember", isMember);
-        
-        // 4. 그룹 정보 전달 및 화면 이동
         request.setAttribute("group", group);
         
         return "/views/group_ledger/group_main.jsp";
@@ -169,9 +147,6 @@ public class GroupLedgerAction implements Action {
     
     // 그룹 달력 리스트 뷰 보기 (AJAX)
     private String getMonthlyTransactions(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
             String yearMonth = request.getParameter("yearMonth"); 
@@ -181,39 +156,25 @@ public class GroupLedgerAction implements Action {
             StringBuilder json = new StringBuilder("[");
             for (int i = 0; i < list.size(); i++) {
                 GroupTransactionDTO dto = list.get(i);
-                
-                // 특수문자 안전 처리 로직 추가
-                String safeMemo = "";
-                if (dto.getTransMemo() != null) {
-                    safeMemo = dto.getTransMemo().replace("\\", "\\\\").replace("\"", "\\\"").replaceAll("[\\r\\n\\t]", " ");
-                }
+                String safeMemo = dto.getTransMemo() != null ? dto.getTransMemo().replace("\\", "\\\\").replace("\"", "\\\"").replaceAll("[\\r\\n\\t]", " ") : "";
                 
                 json.append(String.format(
                     "{\"gtransNum\":%d, \"userNum\":%d, \"userNickname\":\"%s\", \"categoryName\":\"%s\", \"transAmount\":%d, \"transDate\":\"%s\", \"transMemo\":\"%s\", \"periodStatus\":\"%s\"}",
                     dto.getGtransNum(), dto.getUserNum(), dto.getUserNickname(), 
                     dto.getCategoryName(), dto.getTransAmount(), dto.getTransDate(), safeMemo, dto.getPeriodStatus()
                 ));
-                
                 if (i < list.size() - 1) json.append(",");
             }
             json.append("]");
-            
-            out.print(json.toString());
+            return sendJson(response, json.toString());
         } catch (Exception e) {
-            out.print("[]");
-        } finally {
-            out.flush();
+            return sendJson(response, "[]");
         }
-        return null;
     }
     
     // 공동 지출 내역 등록 (AJAX)
     private String insertTransaction(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
         try {
-            // 세션에서 현재 로그인한 유저 정보 가져오기 (결제자 고정)
             UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
             if (loginUser == null) throw new Exception("로그인이 필요합니다.");
 
@@ -223,27 +184,17 @@ public class GroupLedgerAction implements Action {
             dto.setTransAmount(Long.parseLong(request.getParameter("transAmount")));
             dto.setTransDate(request.getParameter("transDate"));
             dto.setTransMemo(request.getParameter("transMemo"));
-            dto.setUserNum(loginUser.getUserNum()); // 결제자는 본인으로 강제 고정!
+            dto.setUserNum(loginUser.getUserNum());
 
             boolean isSuccess = GroupLedgerService.getInstance().insertTransaction(dto);
-            
-            if (isSuccess) {
-                out.print("{\"success\": true, \"message\": \"지출 내역이 등록되었습니다.\"}");
-            } else {
-                out.print("{\"success\": false, \"message\": \"등록에 실패했습니다.\"}");
-            }
+            return sendAjaxResult(response, isSuccess, isSuccess ? "지출 내역이 등록되었습니다." : "등록에 실패했습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally {
-            out.flush();
+            return sendAjaxResult(response, false, e.getMessage());
         }
-        return null;
     }
     
     // [카테고리 목록 불러오기]
     private String getCategoryList(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
             List<GroupCategoryDTO> list = GroupLedgerService.getInstance().getCategoryList(groupNum);
@@ -255,73 +206,57 @@ public class GroupLedgerAction implements Action {
                 if (i < list.size() - 1) json.append(",");
             }
             json.append("]");
-            out.print(json.toString());
-        } catch (Exception e) { out.print("[]"); } 
-        finally { out.flush(); }
-        return null;
+            return sendJson(response, json.toString());
+        } catch (Exception e) { 
+            return sendJson(response, "[]"); 
+        } 
     }
 
     // [카테고리 등록]
     private String addCategory(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
             String name = request.getParameter("categoryName");
-            
             GroupLedgerService.getInstance().addCategory(groupNum, name);
-            out.print("{\"success\": true, \"message\": \"카테고리가 등록되었습니다.\"}");
+            return sendAjaxResult(response, true, "카테고리가 등록되었습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally { out.flush(); }
-        return null;
+            return sendAjaxResult(response, false, e.getMessage());
+        }
     }
 
     // [카테고리 수정]
     private String editCategory(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
             int categoryNum = Integer.parseInt(request.getParameter("categoryNum"));
             String name = request.getParameter("categoryName");
-            
             GroupLedgerService.getInstance().editCategory(groupNum, categoryNum, name);
-            out.print("{\"success\": true, \"message\": \"카테고리가 수정되었습니다.\"}");
+            return sendAjaxResult(response, true, "카테고리가 수정되었습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally { out.flush(); }
-        return null;
+            return sendAjaxResult(response, false, e.getMessage());
+        }
     }
 
     // [카테고리 삭제]
     private String removeCategory(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
         try {
             UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
             int categoryNum = Integer.parseInt(request.getParameter("categoryNum"));
             String categoryName = request.getParameter("categoryName");
-            
             GroupLedgerService.getInstance().removeCategory(groupNum, categoryNum, categoryName, loginUser.getUserNum());
-            out.print("{\"success\": true, \"message\": \"삭제 완료! 관련 지출 내역은 '미분류'로 자동 이관되었습니다.\"}");
+            return sendAjaxResult(response, true, "삭제 완료! 관련 지출 내역은 '미분류'로 자동 이관되었습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally { out.flush(); }
-        return null;
+            return sendAjaxResult(response, false, e.getMessage());
+        }
     }
     
     // [지출 내역 수정 API]
     private String editTransaction(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
         try {
             UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
-            int actionUserNum = loginUser.getUserNum();
-            
             int groupOwnerNum = Integer.parseInt(request.getParameter("groupOwnerNum"));
-            String newCatName = request.getParameter("categoryName"); // 로그용 카테고리 이름
+            String newCatName = request.getParameter("categoryName");
             
             GroupTransactionDTO dto = new GroupTransactionDTO();
             dto.setGtransNum(Integer.parseInt(request.getParameter("gtransNum")));
@@ -330,43 +265,29 @@ public class GroupLedgerAction implements Action {
             dto.setTransDate(request.getParameter("transDate"));
             dto.setTransMemo(request.getParameter("transMemo"));
             
-            GroupLedgerService.getInstance().editTransaction(dto, newCatName, actionUserNum, groupOwnerNum);
-            
-            out.print("{\"success\": true, \"message\": \"지출 내역이 성공적으로 수정되었습니다.\"}");
+            GroupLedgerService.getInstance().editTransaction(dto, newCatName, loginUser.getUserNum(), groupOwnerNum);
+            return sendAjaxResult(response, true, "지출 내역이 성공적으로 수정되었습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally { out.flush(); }
-        return null;
+            return sendAjaxResult(response, false, e.getMessage());
+        }
     }
 
     // [지출 내역 삭제 API]
     private String removeTransaction(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
         try {
             UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
-            int actionUserNum = loginUser.getUserNum();
-            
             int gtransNum = Integer.parseInt(request.getParameter("gtransNum"));
             int groupOwnerNum = Integer.parseInt(request.getParameter("groupOwnerNum"));
             
-            GroupLedgerService.getInstance().removeTransaction(gtransNum, actionUserNum, groupOwnerNum);
-            
-            out.print("{\"success\": true, \"message\": \"지출 내역이 삭제되었습니다.\"}");
+            GroupLedgerService.getInstance().removeTransaction(gtransNum, loginUser.getUserNum(), groupOwnerNum);
+            return sendAjaxResult(response, true, "지출 내역이 삭제되었습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally { out.flush(); }
-        return null;
+            return sendAjaxResult(response, false, e.getMessage());
+        }
     }
     
-    
-    // ==========================================================
     // [변경 이력 조회 API]
-    // ==========================================================
     private String getLogs(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
             List<ExpenseLogDTO> list = GroupLedgerService.getInstance().getExpenseLogs(groupNum);
@@ -374,94 +295,55 @@ public class GroupLedgerAction implements Action {
             StringBuilder json = new StringBuilder("[");
             for (int i = 0; i < list.size(); i++) {
                 ExpenseLogDTO dto = list.get(i);
-                
-                // 삭제('D') 시 null이 되는 필드들을 JSON 포맷에 맞게 안전하게 치환
                 String afterAmtStr = (dto.getAfterAmount() == null) ? "null" : String.valueOf(dto.getAfterAmount());
                 String afterCatStr = (dto.getAfterCategory() == null) ? "null" : "\"" + dto.getAfterCategory() + "\"";
+                String safeMemo = dto.getTransMemo() != null ? dto.getTransMemo().replace("\\", "\\\\").replace("\"", "\\\"").replaceAll("[\\r\\n\\t]", " ") : "";
                 
-                // 🌟 수정 완료: 변수명을 't'에서 'dto'로 맞추고 정규식 이스케이프 적용
-                String safeMemo = "";
-                if (dto.getTransMemo() != null) {
-                    safeMemo = dto.getTransMemo().replace("\\", "\\\\").replace("\"", "\\\"").replaceAll("[\\r\\n\\t]", " ");
-                }
-                
-                json.append("{");
-                json.append("\"logNum\":").append(dto.getLogNum()).append(",");
-                json.append("\"actionType\":\"").append(dto.getActionType()).append("\",");
-                json.append("\"beforeAmount\":").append(dto.getBeforeAmount()).append(",");
-                json.append("\"afterAmount\":").append(afterAmtStr).append(",");
-                json.append("\"beforeCategory\":\"").append(dto.getBeforeCategory()).append("\",");
-                json.append("\"afterCategory\":").append(afterCatStr).append(",");
-                json.append("\"createdAtStr\":\"").append(dto.getCreatedAtStr()).append("\",");
-                json.append("\"userNickname\":\"").append(dto.getUserNickname()).append("\",");
-                json.append("\"transMemo\":\"").append(safeMemo).append("\"");
-                json.append("}");
-                
+                json.append(String.format(
+                    "{\"logNum\":%d, \"actionType\":\"%s\", \"beforeAmount\":%d, \"afterAmount\":%s, \"beforeCategory\":\"%s\", \"afterCategory\":%s, \"createdAtStr\":\"%s\", \"userNickname\":\"%s\", \"transMemo\":\"%s\"}",
+                    dto.getLogNum(), dto.getActionType(), dto.getBeforeAmount(), afterAmtStr, dto.getBeforeCategory(), afterCatStr, dto.getCreatedAtStr(), dto.getUserNickname(), safeMemo
+                ));
                 if (i < list.size() - 1) json.append(",");
             }
             json.append("]");
-            
-            out.print(json.toString());
+            return sendJson(response, json.toString());
         } catch (Exception e) {
             e.printStackTrace();
-            out.print("[]");
-        } finally {
-            out.flush();
+            return sendJson(response, "[]");
         }
-        return null;
     }
     
     // [과거 정산 보관함] 마감된 회차 목록 가져오기 API
     private String getClosedPeriods(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
-            
-            // Service 쪽에 "마감된 회차 목록 가져와!" 라고 요청 (이따 만들 부분)
             List<LedgerPeriodDTO> list = GroupLedgerService.getInstance().getClosedPeriods(groupNum);
             
             StringBuilder json = new StringBuilder("[");
             for (int i = 0; i < list.size(); i++) {
                 LedgerPeriodDTO dto = list.get(i);
-                
                 json.append(String.format(
                     "{\"periodNum\":%d, \"periodSeq\":%d, \"startDate\":\"%s\", \"endDate\":\"%s\"}",
                     dto.getPeriodNum(), dto.getPeriodSeq(), dto.getPeriodStartDate(), dto.getPeriodEndDate()
                 ));
-                
                 if (i < list.size() - 1) json.append(",");
             }
             json.append("]");
-            
-            out.print(json.toString());
+            return sendJson(response, json.toString());
         } catch (Exception e) {
             e.printStackTrace();
-            out.print("[]");
-        } finally {
-            out.flush();
+            return sendJson(response, "[]");
         }
-        return null;
     }
 
     // [과거 정산 보관함] 특정 회차의 상세 내역(스냅샷+지출) 병합 반환 API
     private String getArchiveDetails(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
         try {
             int periodNum = Integer.parseInt(request.getParameter("periodNum"));
-            
-            // 1. 기존에 잘 만들어둔 DAO 재활용 (지출 내역)
             List<GroupTransactionDTO> transList = GroupTransactionDAO.getInstance().getTransactionsByPeriod(periodNum);
-            
-            // 2. 방금 2단계에서 새로 만든 DAO 호출 (스냅샷)
             List<SettlementSnapshotDTO> snapList = SettlementSnapshotDAO.getInstance().getSnapshotsByPeriod(periodNum);
             
-            // 3. JSON 수동 조립 시작
-            StringBuilder json = new StringBuilder();
-            json.append("{"); 
+            StringBuilder json = new StringBuilder("{"); 
             
             // --- [1] snapshots 배열 조립 ---
             json.append("\"snapshots\":[");
@@ -475,14 +357,11 @@ public class GroupLedgerAction implements Action {
             }
             json.append("],"); 
             
-            // --- [2] transactions 배열 조립 (기존 데이터 활용) ---
+            // --- [2] transactions 배열 조립 ---
             json.append("\"transactions\":[");
             for (int i = 0; i < transList.size(); i++) {
                 GroupTransactionDTO t = transList.get(i);
-                
-                // 메모에 쌍따옴표나 줄바꿈이 있을 경우를 대비한 안전 처리
                 String safeMemo = t.getTransMemo() != null ? t.getTransMemo().replace("\"", "\\\"").replace("\n", " ") : "";
-                
                 json.append(String.format(
                     "{\"categoryName\":\"%s\", \"transMemo\":\"%s\", \"transDate\":\"%s\", \"userNickname\":\"%s\", \"transAmount\":%d}",
                     t.getCategoryName(), safeMemo, t.getTransDate(), t.getUserNickname(), t.getTransAmount()
@@ -490,19 +369,12 @@ public class GroupLedgerAction implements Action {
                 if (i < transList.size() - 1) json.append(",");
             }
             json.append("]"); 
-            
             json.append("}"); 
             
-            out.print(json.toString());
-            
+            return sendJson(response, json.toString());
         } catch (Exception e) {
             e.printStackTrace();
-            out.print("{\"snapshots\":[], \"transactions\":[]}");
-        } finally {
-            out.flush();
+            return sendJson(response, "{\"snapshots\":[], \"transactions\":[]}");
         }
-        
-        return null;
     }
-    
 }

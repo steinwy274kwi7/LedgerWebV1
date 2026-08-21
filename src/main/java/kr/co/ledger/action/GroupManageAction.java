@@ -22,12 +22,12 @@ public class GroupManageAction implements Action {
         return switch (methodName) {
             case "getInvitations" -> getInvitations(request, response); 
             case "respondInvite"  -> respondInvite(request, response);
-            case "list" 		  -> getMyGroupList(request, response);
-            case "createForm" 	  -> createForm(request, response);
+            case "list"           -> getMyGroupList(request, response);
+            case "createForm"     -> createForm(request, response);
             case "create"         -> createGroup(request, response);
             case "updateSettings" -> updateGroupSettings(request, response);
-            case "delete" 		  -> deleteGroup(request, response);
-            case "sendInvite" 	  -> sendInvite(request, response);
+            case "delete"         -> deleteGroup(request, response);
+            case "sendInvite"     -> sendInvite(request, response);
             case "getMemberList"  -> getMemberList(request, response);
             case "kickMember"     -> kickMember(request, response);
             case "leaveGroup"     -> leaveGroup(request, response);
@@ -37,83 +37,78 @@ public class GroupManageAction implements Action {
         };
     }
 
+    // ==========================================================
+    // 🌟 [리팩토링] 공통 JSON 응답 헬퍼 메서드
+    // ==========================================================
+    private String sendJson(HttpServletResponse response, String jsonString) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        out.print(jsonString != null ? jsonString : "[]");
+        out.flush();
+        return null;
+    }
+
+    private String sendAjaxResult(HttpServletResponse response, boolean success, String message) throws Exception {
+        String safeMessage = message != null ? message.replace("\"", "\\\"").replace("\n", " ") : "";
+        String jsonString = "{\"success\": " + success + ", \"message\": \"" + safeMessage + "\"}";
+        return sendJson(response, jsonString);
+    }
+    // ==========================================================
+
     // 초대알림 목록 보기
     private String getInvitations(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
         if (loginUser == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
-            return null;
+            return sendJson(response, "[]");
         }
         
-        int myUserNum = loginUser.getUserNum(); 
-        List<InvitationDTO> inviteList = GroupManageService.getInstance().getPendingInvitations(myUserNum);
+        List<InvitationDTO> inviteList = GroupManageService.getInstance().getPendingInvitations(loginUser.getUserNum());
         
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
-        StringBuilder json = new StringBuilder();
-        json.append("[");
-        
+        StringBuilder json = new StringBuilder("[");
         for (int i = 0; i < inviteList.size(); i++) {
             InvitationDTO dto = inviteList.get(i);
-            
-            json.append("{");
-            json.append("\"inviteNum\":").append(dto.getInviteNum()).append(",");
-            json.append("\"groupName\":\"").append(dto.getGroupName()).append("\",");
-            json.append("\"inviterName\":\"").append(dto.getInviterName()).append("\"");
-            json.append("}");
-            
-            if (i < inviteList.size() - 1) {
-                json.append(",");
-            }
+            json.append(String.format("{\"inviteNum\":%d, \"groupName\":\"%s\", \"inviterName\":\"%s\"}", 
+                        dto.getInviteNum(), dto.getGroupName(), dto.getInviterName()));
+            if (i < inviteList.size() - 1) json.append(",");
         }
         json.append("]");
         
-        out.print(json.toString()); 
-        out.flush();
-        
-        return null;
+        return sendJson(response, json.toString());
     }
     
- 	// 초대 수락, 거절
+    // 초대 수락, 거절
     private String respondInvite(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
         if (loginUser == null) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
-            return null;
+            return sendAjaxResult(response, false, "로그인이 필요합니다.");
         }
         
-        int inviteNum = Integer.parseInt(request.getParameter("inviteNum"));
-        String status = request.getParameter("status"); 
-        int myUserNum = loginUser.getUserNum(); 
-        
-        boolean isSuccess = GroupManageService.getInstance().respondToInvitation(inviteNum, status, myUserNum);
-        
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        out.print("{\"success\": " + isSuccess + "}"); 
-        out.flush();
-        
-        return null;
+        try {
+            int inviteNum = Integer.parseInt(request.getParameter("inviteNum"));
+            String status = request.getParameter("status"); 
+            
+            boolean isSuccess = GroupManageService.getInstance().respondToInvitation(inviteNum, status, loginUser.getUserNum());
+            return sendAjaxResult(response, isSuccess, isSuccess ? "처리 완료" : "처리 실패");
+        } catch (Exception e) {
+            return sendAjaxResult(response, false, e.getMessage());
+        }
     }
     
-    // 내가 속한 그룹 목록 로드
+    // 내가 속한 그룹 목록 로드 (화면 이동)
     private String getMyGroupList(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
-        
         if (loginUser == null) {
             return "redirect:" + request.getContextPath() + "/user/loginForm.do";
         }
 
         List<GroupDTO> groupList = GroupManageService.getInstance().getMyGroupList(loginUser.getUserNum());
-        
         request.setAttribute("groupList", groupList);
         
         return "/views/group_manage/groupList.jsp";
     }
     
-    // 그룹 생성 폼 이동
+    // 그룹 생성 폼 이동 (화면 이동)
     private String createForm(HttpServletRequest request, HttpServletResponse response) throws Exception {
         if (request.getSession().getAttribute("loginUser") == null) {
             return "redirect:" + request.getContextPath() + "/user/loginForm.do";
@@ -121,20 +116,10 @@ public class GroupManageAction implements Action {
         return "/views/group_manage/createForm.jsp";
     }
 
-    // 실제 그룹 생성 처리 (AJAX 전용으로 수정)
+    // 실제 그룹 생성 처리 (AJAX)
     private String createGroup(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
-        
-        // 1. 응답 타입을 JSON으로 설정 (다른 AJAX 메서드들과 동일)
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-
-        // 2. 비로그인 처리 (JSON 에러 반환)
-        if (loginUser == null) {
-            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
-            out.flush();
-            return null; // FrontController 화면 이동 막음
-        }
+        if (loginUser == null) return sendAjaxResult(response, false, "로그인이 필요합니다.");
 
         try {
             String groupName = request.getParameter("groupName");
@@ -153,40 +138,17 @@ public class GroupManageAction implements Action {
             dto.setGroupOpenYn(groupOpenYn);
             dto.setGroupOwnerNum(loginUser.getUserNum());
 
-            // 3. 서비스 호출
-            // 💡 TIP: 만약 Service의 createGroup이 생성된 방 번호(int)를 반환하도록 설계되어 있다면
-            // int groupNum = GroupManageService.getInstance().createGroup(dto);
-            // 처럼 받아서 JSON에 같이 넘겨주면 아주 좋습니다. (현재는 반환값이 없다고 가정하고 작성했습니다)
             GroupManageService.getInstance().createGroup(dto);
-
-            // 4. 성공 응답 JSON 출력
-            out.print("{\"success\": true}");
-            
-            // (참고) 방 번호를 리턴받을 수 있다면 위 코드를 지우고 아래처럼 응답하세요.
-            // out.print("{\"success\": true, \"groupNum\": " + groupNum + "}");
-
+            return sendAjaxResult(response, true, "공동 가계부가 성공적으로 생성되었습니다.");
         } catch (Exception e) {
-            // 5. 실패(예외) 응답 JSON 출력
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally {
-            out.flush();
+            return sendAjaxResult(response, false, e.getMessage());
         }
-        
-        // 6. View 경로 대신 null 반환 (Redirect, Forward 무시)
-        return null;
     }
     
-    // 그룹 설정 업데이트
+    // 그룹 설정 업데이트 (AJAX)
     private String updateGroupSettings(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
-       
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
-        if (loginUser == null) {
-            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
-            return null;
-        }
+        if (loginUser == null) return sendAjaxResult(response, false, "로그인이 필요합니다.");
 
         try {
             GroupDTO dto = new GroupDTO();
@@ -195,7 +157,6 @@ public class GroupManageAction implements Action {
             dto.setGroupDesc(request.getParameter("groupDesc"));
             dto.setGroupOpenYn(request.getParameter("groupOpenYn"));
             dto.setSettleUseYn(request.getParameter("settleUseYn")); 
-            
             dto.setGroupOwnerNum(loginUser.getUserNum());
 
             if (dto.getGroupName().isEmpty() || dto.getGroupName().length() > 20) {
@@ -203,55 +164,30 @@ public class GroupManageAction implements Action {
             }
 
             GroupManageService.getInstance().updateGroupSettings(dto);
-            out.print("{\"success\": true, \"message\": \"설정이 성공적으로 변경되었습니다.\"}");
-            
+            return sendAjaxResult(response, true, "설정이 성공적으로 변경되었습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally {
-            out.flush();
+            return sendAjaxResult(response, false, e.getMessage());
         }
-        
-        return null;
     }
     
-    // 그룹 삭제 ( 방 소프트 딜리트 )
+    // 그룹 삭제 (방 소프트 딜리트) (AJAX)
     private String deleteGroup(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
-        
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
-        if (loginUser == null) {
-            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
-            return null;
-        }
+        if (loginUser == null) return sendAjaxResult(response, false, "로그인이 필요합니다.");
 
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
-            
             GroupManageService.getInstance().deleteGroup(groupNum, loginUser.getUserNum());
-            
-            out.print("{\"success\": true, \"message\": \"그룹이 성공적으로 삭제되었습니다.\"}");
-            
+            return sendAjaxResult(response, true, "그룹이 성공적으로 삭제되었습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally {
-            out.flush();
+            return sendAjaxResult(response, false, e.getMessage());
         }
-        
-        return null; 
     }
     
-    // 그룹 멤버 초대
+    // 그룹 멤버 초대 (AJAX)
     private String sendInvite(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
-        if (loginUser == null) {
-            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
-            return null;
-        }
+        if (loginUser == null) return sendAjaxResult(response, false, "로그인이 필요합니다.");
 
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
@@ -262,126 +198,80 @@ public class GroupManageAction implements Action {
             }
 
             GroupManageService.getInstance().sendInvite(groupNum, loginUser.getUserNum(), inviteeId);
-            
-            out.print("{\"success\": true, \"message\": \"초대장이 성공적으로 발송되었습니다!\"}");
-            
+            return sendAjaxResult(response, true, "초대장이 성공적으로 발송되었습니다!");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally {
-            out.flush();
+            return sendAjaxResult(response, false, e.getMessage());
         }
-        return null; 
     }
     
-    // 멤버 목록 로드
+    // 멤버 목록 로드 (AJAX)
     private String getMemberList(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        int groupNum = Integer.parseInt(request.getParameter("groupNum"));
-        
-        List<GroupMemberDTO> list = GroupManageService.getInstance().getGroupMemberList(groupNum);
-        
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
-        StringBuilder json = new StringBuilder("[");
-        for (int i = 0; i < list.size(); i++) {
-            GroupMemberDTO m = list.get(i);
-            json.append("{");
-            json.append("\"userNum\":").append(m.getUserNum()).append(",");
-            json.append("\"userId\":\"").append(m.getUserId()).append("\",");
-            json.append("\"userNickname\":\"").append(m.getUserNickname()).append("\",");
-            json.append("\"joinDate\":\"").append(m.getJoinDate()).append("\"");
-            json.append("}");
+        try {
+            int groupNum = Integer.parseInt(request.getParameter("groupNum"));
+            List<GroupMemberDTO> list = GroupManageService.getInstance().getGroupMemberList(groupNum);
             
-            if (i < list.size() - 1) json.append(",");
+            StringBuilder json = new StringBuilder("[");
+            for (int i = 0; i < list.size(); i++) {
+                GroupMemberDTO m = list.get(i);
+                json.append(String.format("{\"userNum\":%d, \"userId\":\"%s\", \"userNickname\":\"%s\", \"joinDate\":\"%s\"}", 
+                            m.getUserNum(), m.getUserId(), m.getUserNickname(), m.getJoinDate()));
+                if (i < list.size() - 1) json.append(",");
+            }
+            json.append("]");
+            return sendJson(response, json.toString());
+        } catch (Exception e) {
+            return sendJson(response, "[]");
         }
-        json.append("]");
-        
-        out.print(json.toString());
-        out.flush();
-        return null;
     }
 
-    // 멤버 강퇴 처리 (방장 전용)
+    // 멤버 강퇴 처리 (방장 전용) (AJAX)
     private String kickMember(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
-        if (loginUser == null) {
-            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
-            return null;
-        }
+        if (loginUser == null) return sendAjaxResult(response, false, "로그인이 필요합니다.");
         
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
             int targetUserNum = Integer.parseInt(request.getParameter("targetUserNum"));
             
             GroupManageService.getInstance().kickMember(groupNum, targetUserNum, loginUser.getUserNum());
-            
-            out.print("{\"success\": true, \"message\": \"멤버를 강퇴했습니다.\"}");
+            return sendAjaxResult(response, true, "멤버를 강퇴했습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally { 
-            out.flush(); 
+            return sendAjaxResult(response, false, e.getMessage());
         }
-        return null;
     }
 
-    // 자진 탈퇴 처리 (일반 멤버 전용)
+    // 자진 탈퇴 처리 (일반 멤버 전용) (AJAX)
     private String leaveGroup(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
-        if (loginUser == null) {
-            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
-            return null;
-        }
+        if (loginUser == null) return sendAjaxResult(response, false, "로그인이 필요합니다.");
         
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
-            
             GroupManageService.getInstance().leaveGroup(groupNum, loginUser.getUserNum());
-            
-            out.print("{\"success\": true, \"message\": \"그룹에서 성공적으로 탈퇴했습니다.\"}");
+            return sendAjaxResult(response, true, "그룹에서 성공적으로 탈퇴했습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally { 
-            out.flush(); 
+            return sendAjaxResult(response, false, e.getMessage());
         }
-        return null;
     }
     
     // 방장 수동 위임 (AJAX)
     private String transferOwner(HttpServletRequest request, HttpServletResponse response) throws Exception {
         UserDTO loginUser = (UserDTO) request.getSession().getAttribute("loginUser");
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        
-        if (loginUser == null) {
-            out.print("{\"success\": false, \"message\": \"로그인이 필요합니다.\"}");
-            return null;
-        }
+        if (loginUser == null) return sendAjaxResult(response, false, "로그인이 필요합니다.");
         
         try {
             int groupNum = Integer.parseInt(request.getParameter("groupNum"));
             int targetUserNum = Integer.parseInt(request.getParameter("targetUserNum"));
             
             GroupManageService.getInstance().transferOwner(groupNum, targetUserNum, loginUser.getUserNum());
-            
-            out.print("{\"success\": true, \"message\": \"방장 권한이 성공적으로 위임되었습니다.\"}");
+            return sendAjaxResult(response, true, "방장 권한이 성공적으로 위임되었습니다.");
         } catch (Exception e) {
-            out.print("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
-        } finally { 
-            out.flush(); 
+            return sendAjaxResult(response, false, e.getMessage());
         }
-        return null;
     }
     
     // 공개 방 검색 (AJAX)
     private String searchPublicGroups(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = response.getWriter();
         try {
             String keyword = request.getParameter("keyword");
             List<GroupDTO> list = GroupManageService.getInstance().searchPublicGroups(keyword);
@@ -394,13 +284,9 @@ public class GroupManageAction implements Action {
                 if (i < list.size() - 1) json.append(",");
             }
             json.append("]");
-            out.print(json.toString());
+            return sendJson(response, json.toString());
         } catch (Exception e) {
-            out.print("[]");
-        } finally {
-            out.flush();
+            return sendJson(response, "[]");
         }
-        return null;
     }
-    
 }
