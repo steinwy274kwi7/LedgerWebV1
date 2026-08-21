@@ -86,6 +86,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- 공통 AJAX 모듈 -->
     <script src="${pageContext.request.contextPath}/assets/js/common/ajaxUtil.js"></script>
+    <!-- 더블클릭 방지 모듈 -->
+    <script src="${pageContext.request.contextPath}/assets/js/common/uiUtil.js"></script>
     <!-- 분리된 커스텀 JS 연결 -->
     <script src="${pageContext.request.contextPath}/assets/js/group_manage/createForm.js"></script>
 
