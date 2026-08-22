@@ -6,7 +6,7 @@
     <entry key="getMyGroupList">
         <![CDATA[
         SELECT G.GROUP_NUM, G.GROUP_NAME, G.GROUP_DESC, G.GROUP_TYPE, G.GROUP_OWNER_NUM, 
-               TO_CHAR(G.CREATED_AT, 'YYYY-MM-DD') AS CREATED_AT,
+               DATE_FORMAT(G.CREATED_AT, '%Y-%m-%d') AS CREATED_AT,
                (SELECT COUNT(*) FROM GROUP_MEMBERS WHERE GROUP_NUM = G.GROUP_NUM AND MEMBER_STATUS = 'A') AS MEMBER_COUNT
         FROM GROUPS G
         JOIN GROUP_MEMBERS GM ON G.GROUP_NUM = GM.GROUP_NUM
@@ -25,45 +25,40 @@
 	    ]]>
 	</entry>
 
-	<!-- 새로운 그룹 방 번호(시퀀스) 미리 가져오기 -->
-	<entry key="getGroupSeq">
-	    <![CDATA[
-	    SELECT SEQ_GROUPS.NEXTVAL FROM DUAL
-	    ]]>
-	</entry>
-
 	<!-- 그룹 방 생성 -->
 	<entry key="insertGroup">
 	    <![CDATA[
-	    INSERT INTO GROUPS (GROUP_NUM, GROUP_NAME, GROUP_DESC, GROUP_TYPE, GROUP_OWNER_NUM, GROUP_OPEN_YN, SETTLE_USE_YN, USE_YN, CREATED_AT)
-	    VALUES (?, ?, ?, ?, ?, ?, 'Y', 'Y', SYSDATE)
+	    INSERT INTO GROUPS (GROUP_NAME, GROUP_DESC, GROUP_TYPE, GROUP_OWNER_NUM, GROUP_OPEN_YN, SETTLE_USE_YN, USE_YN, CREATED_AT)
+	    VALUES (?, ?, ?, ?, ?, 'Y', 'Y', NOW())
 	    ]]>
 	</entry>
 
 	<!-- 방장을 방 멤버로 자동 추가 -->
 	<entry key="insertGroupMemberOwner">
 	    <![CDATA[
-	    INSERT INTO GROUP_MEMBERS (MEMBER_NUM, GROUP_NUM, USER_NUM, JOIN_DATE, MEMBER_STATUS)
-	    VALUES (SEQ_GROUP_MEMBERS.NEXTVAL, ?, ?, SYSDATE, 'A')
+	    INSERT INTO GROUP_MEMBERS (GROUP_NUM, USER_NUM, JOIN_DATE, MEMBER_STATUS)
+	    VALUES (?, ?, NOW(), 'A')
 	    ]]>
 	</entry>
 
-	<!-- 그룹 설정 업데이트 (방장 본인만 가능하도록 조건 추가) -->
+	<!-- 그룹 설정 업데이트 (방장 본인만 가능하도록 조건 추가 + SETTLE_USE_YN 포함 최신버전) -->
 	<entry key="updateGroupSettings">
-	    <![CDATA[
 	    UPDATE GROUPS 
 	    SET GROUP_NAME = ?, 
 	        GROUP_DESC = ?, 
-	        GROUP_OPEN_YN = ?
+	        GROUP_OPEN_YN = ?,
+	        SETTLE_USE_YN = ?
 	    WHERE GROUP_NUM = ? AND GROUP_OWNER_NUM = ?
-	    ]]>
 	</entry>
 
-	<!-- 특정 그룹 정보 하나만 가져오기 -->
+	<!-- 특정 그룹정보 가져오기 쿼리 (SETTLE_USE_YN 포함 최신버전) -->
 	<entry key="getGroupInfo">
-	    <![CDATA[
-	    SELECT * FROM GROUPS WHERE GROUP_NUM = ?
-	    ]]>
+	    SELECT 
+	        GROUP_NUM, GROUP_NAME, GROUP_DESC, GROUP_TYPE, 
+	        GROUP_OWNER_NUM, GROUP_OPEN_YN, SETTLE_USE_YN, 
+	        DATE_FORMAT(CREATED_AT, '%Y-%m-%d') AS CREATED_AT
+	    FROM GROUPS
+	    WHERE GROUP_NUM = ?
 	</entry>
 
 	<!-- 방 소프트 딜리트 (방장 본인만 가능) -->
@@ -99,8 +94,8 @@
 	<!-- 초대장 발송 (INSERT) -->
 	<entry key="insertInvitation">
 	    <![CDATA[
-	    INSERT INTO INVITATIONS (INVITE_NUM, GROUP_NUM, INVITER_NUM, INVITEE_NUM, INVITE_STATUS, CREATED_AT)
-	    VALUES (SEQ_INVITATIONS.NEXTVAL, ?, ?, ?, 'P', SYSDATE)
+	    INSERT INTO INVITATIONS (GROUP_NUM, INVITER_NUM, INVITEE_NUM, INVITE_STATUS, CREATED_AT)
+	    VALUES (?, ?, ?, 'P', NOW())
 	    ]]>
 	</entry>
 
@@ -111,7 +106,7 @@
 	        M.MEMBER_NUM, 
 	        M.GROUP_NUM, 
 	        M.USER_NUM, 
-	        TO_CHAR(M.JOIN_DATE, 'YYYY-MM-DD') AS JOIN_DATE,
+	        DATE_FORMAT(M.JOIN_DATE, '%Y-%m-%d') AS JOIN_DATE,
 	        M.MEMBER_STATUS,
 	        U.USER_ID, 
 	        U.USER_NICKNAME
@@ -138,12 +133,10 @@
 	<entry key="getOldestMember">
 	    <![CDATA[
 	    SELECT USER_NUM 
-	    FROM (
-	        SELECT USER_NUM 
-	        FROM GROUP_MEMBERS 
-	        WHERE GROUP_NUM = ? AND USER_NUM != ? AND MEMBER_STATUS = 'A'
-	        ORDER BY JOIN_DATE ASC, MEMBER_NUM ASC
-	    ) WHERE ROWNUM = 1
+	    FROM GROUP_MEMBERS 
+	    WHERE GROUP_NUM = ? AND USER_NUM != ? AND MEMBER_STATUS = 'A'
+	    ORDER BY JOIN_DATE ASC, MEMBER_NUM ASC
+	    LIMIT 1
 	    ]]>
 	</entry>
 
@@ -162,7 +155,7 @@
 	    SELECT GROUP_NUM, GROUP_NAME, GROUP_DESC 
 	    FROM GROUPS 
 	    WHERE GROUP_OPEN_YN = 'Y' AND USE_YN = 'Y' 
-	      AND GROUP_NAME LIKE '%' || ? || '%'
+	      AND GROUP_NAME LIKE CONCAT('%', ?, '%')
 	    ORDER BY GROUP_NUM DESC
 	    ]]>
 	</entry>
@@ -172,7 +165,7 @@
 	    <![CDATA[
 	    SELECT 
 	        T.GTRANS_NUM, T.GROUP_NUM, T.TRANS_AMOUNT, 
-	        TO_CHAR(T.TRANS_DATE, 'YYYY-MM-DD') AS TRANS_DATE,
+	        DATE_FORMAT(T.TRANS_DATE, '%Y-%m-%d') AS TRANS_DATE,
 	        T.TRANS_MEMO, T.USER_NUM, U.USER_NICKNAME,
 	        C.CATEGORY_NAME,
 	        LP.PERIOD_STATUS
@@ -181,7 +174,7 @@
 	    JOIN GROUP_CATEGORIES C ON T.GCATEGORY_NUM = C.GCATEGORY_NUM
 	    JOIN LEDGER_PERIODS LP ON T.PERIOD_NUM = LP.PERIOD_NUM
 	    WHERE T.GROUP_NUM = ? 
-	      AND TO_CHAR(T.TRANS_DATE, 'YYYY-MM') = ?
+	      AND DATE_FORMAT(T.TRANS_DATE, '%Y-%m') = ?
 	      AND T.USE_YN = 'Y'
 	    ORDER BY T.TRANS_DATE DESC, T.GTRANS_NUM DESC
 	    ]]>
@@ -193,8 +186,8 @@
 	    SELECT 
 	        PERIOD_NUM, 
 	        PERIOD_SEQ, 
-	        TO_CHAR(PERIOD_START_DATE, 'YYYY-MM-DD') AS START_DATE,
-	        TO_CHAR(PERIOD_END_DATE, 'YYYY-MM-DD') AS END_DATE
+	        DATE_FORMAT(PERIOD_START_DATE, '%Y-%m-%d') AS START_DATE,
+	        DATE_FORMAT(PERIOD_END_DATE, '%Y-%m-%d') AS END_DATE
 	    FROM LEDGER_PERIODS
 	    WHERE GROUP_NUM = ? AND PERIOD_STATUS = 'C'
 	    ORDER BY PERIOD_SEQ DESC
@@ -221,7 +214,7 @@
 	    <![CDATA[
 	    SELECT 
 	        T.GTRANS_NUM, T.TRANS_AMOUNT, 
-	        TO_CHAR(T.TRANS_DATE, 'YYYY-MM-DD') AS TRANS_DATE,
+	        DATE_FORMAT(T.TRANS_DATE, '%Y-%m-%d') AS TRANS_DATE,
 	        T.TRANS_MEMO, U.USER_NICKNAME, C.CATEGORY_NAME
 	    FROM GROUP_TRANSACTIONS T
 	    JOIN USERS U ON T.USER_NUM = U.USER_NUM
@@ -229,26 +222,6 @@
 	    WHERE T.PERIOD_NUM = ? AND T.USE_YN = 'Y'
 	    ORDER BY T.TRANS_DATE DESC, T.GTRANS_NUM DESC
 	    ]]>
-	</entry>
-
-	<!-- 1. 그룹 설정 업데이트 쿼리 수정 -->
-	<entry key="updateGroupSettings">
-	    UPDATE GROUPS 
-	    SET GROUP_NAME = ?, 
-	        GROUP_DESC = ?, 
-	        GROUP_OPEN_YN = ?,
-	        SETTLE_USE_YN = ?
-	    WHERE GROUP_NUM = ? AND GROUP_OWNER_NUM = ?
-	</entry>
-	
-	<!-- 2. 특정 그룹정보 가져오기 쿼리 수정 (SELECT 절에 SETTLE_USE_YN 추가) -->
-	<entry key="getGroupInfo">
-	    SELECT 
-	        GROUP_NUM, GROUP_NAME, GROUP_DESC, GROUP_TYPE, 
-	        GROUP_OWNER_NUM, GROUP_OPEN_YN, SETTLE_USE_YN, 
-	        TO_CHAR(CREATED_AT, 'YYYY-MM-DD') AS CREATED_AT
-	    FROM GROUPS
-	    WHERE GROUP_NUM = ?
 	</entry>
 
 </properties>

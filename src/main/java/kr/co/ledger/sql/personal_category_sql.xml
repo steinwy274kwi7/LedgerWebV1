@@ -15,8 +15,8 @@
 	<!-- 카테고리 등록 -->
 	<entry key="insertPersonalCategory">
 	    <![CDATA[
-	    INSERT INTO PERSONAL_CATEGORIES (CATEGORY_NUM, USER_NUM, CATEGORY_NAME, CATEGORY_TYPE)
-	    VALUES (SEQ_PERSONAL_CATEGORIES.NEXTVAL, ?, ?, ?)
+	    INSERT INTO PERSONAL_CATEGORIES (USER_NUM, CATEGORY_NAME, CATEGORY_TYPE)
+	    VALUES (?, ?, ?)
 	    ]]>
 	</entry>
 	
@@ -55,16 +55,16 @@
 	<!-- 신규 유저 지출(E) 미분류 생성 -->
 	<entry key="insertDefaultPersonalCategoryExpense">
 	    <![CDATA[
-	    INSERT INTO PERSONAL_CATEGORIES (CATEGORY_NUM, USER_NUM, CATEGORY_NAME, CATEGORY_TYPE, IS_DEFAULT_YN, USE_YN, CREATED_AT) 
-	    VALUES (SEQ_PERSONAL_CATEGORIES.NEXTVAL, ?, '미분류', 'E', 'Y', 'Y', SYSDATE)
+	    INSERT INTO PERSONAL_CATEGORIES (USER_NUM, CATEGORY_NAME, CATEGORY_TYPE, IS_DEFAULT_YN, USE_YN, CREATED_AT) 
+	    VALUES (?, '미분류', 'E', 'Y', 'Y', NOW())
 	    ]]>
 	</entry>
 	
 	<!-- 신규 유저 수입(I) 미분류 생성 -->
 	<entry key="insertDefaultPersonalCategoryIncome">
 	    <![CDATA[
-	    INSERT INTO PERSONAL_CATEGORIES (CATEGORY_NUM, USER_NUM, CATEGORY_NAME, CATEGORY_TYPE, IS_DEFAULT_YN, USE_YN, CREATED_AT) 
-	    VALUES (SEQ_PERSONAL_CATEGORIES.NEXTVAL, ?, '미분류', 'I', 'Y', 'Y', SYSDATE)
+	    INSERT INTO PERSONAL_CATEGORIES (USER_NUM, CATEGORY_NAME, CATEGORY_TYPE, IS_DEFAULT_YN, USE_YN, CREATED_AT) 
+	    VALUES (?, '미분류', 'I', 'Y', 'Y', NOW())
 	    ]]>
 	</entry>
 

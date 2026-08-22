@@ -60,39 +60,44 @@ public class GroupDAO {
         return 0;
     }
 
-    // 그룹 생성 및 방장 가입 트랜잭션
+    // 그룹 생성 및 방장 가입 트랜잭션 (MySQL AUTO_INCREMENT 버전)
     public void createGroup(GroupDTO dto) throws Exception {
-        String sqlSeq = SqlManager.getSql("getGroupSeq");
+        // 1. 시퀀스 쿼리 호출(getGroupSeq) 제거됨
         String sqlGroup = SqlManager.getSql("insertGroup");
         String sqlMember = SqlManager.getSql("insertGroupMemberOwner");
 
         Connection conn = null;
         try {
             conn = DBManager.getConnection();
-            conn.setAutoCommit(false);
+            conn.setAutoCommit(false); // 트랜잭션 시작
 
             int newGroupNum = 0;
             
-            try (PreparedStatement pstmtSeq = conn.prepareStatement(sqlSeq);
-                 ResultSet rs = pstmtSeq.executeQuery()) {
-                if (rs.next()) newGroupNum = rs.getInt(1);
-            }
-            
-            try (PreparedStatement pstmtGroup = conn.prepareStatement(sqlGroup)) {
-                pstmtGroup.setInt(1, newGroupNum);
-                pstmtGroup.setString(2, dto.getGroupName());
-                pstmtGroup.setString(3, dto.getGroupDesc());
-                pstmtGroup.setString(4, dto.getGroupType());
-                pstmtGroup.setInt(5, dto.getGroupOwnerNum());
-                pstmtGroup.setString(6, dto.getGroupOpenYn() != null ? dto.getGroupOpenYn() : "N");
+            // 2. 방 생성 (INSERT) - 방금 생성된 PK 낚아채기 옵션 추가!
+            try (PreparedStatement pstmtGroup = conn.prepareStatement(sqlGroup, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+                // XML에서 PK가 빠졌으므로 인덱스 1번부터 바로 세팅
+                pstmtGroup.setString(1, dto.getGroupName());
+                pstmtGroup.setString(2, dto.getGroupDesc());
+                pstmtGroup.setString(3, dto.getGroupType());
+                pstmtGroup.setInt(4, dto.getGroupOwnerNum());
+                pstmtGroup.setString(5, dto.getGroupOpenYn() != null ? dto.getGroupOpenYn() : "N");
                 pstmtGroup.executeUpdate();
+
+                // 3. 방금 발급된 AUTO_INCREMENT 번호(GROUP_NUM) 획득
+                try (ResultSet rs = pstmtGroup.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        newGroupNum = rs.getInt(1);
+                    }
+                }
             }
 
+            // 4. 획득한 방 번호로 방장 자동 가입 (INSERT)
             try (PreparedStatement pstmtMember = conn.prepareStatement(sqlMember)) {
                 pstmtMember.setInt(1, newGroupNum);
                 pstmtMember.setInt(2, dto.getGroupOwnerNum());
                 pstmtMember.executeUpdate();
             }
+            
             dto.setGroupNum(newGroupNum);
             conn.commit();
             

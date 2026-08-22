@@ -5,9 +5,9 @@
     <!-- 회원가입 -->
     <entry key="insertUser">
         INSERT INTO USERS (
-            USER_NUM, USER_ID, USER_PW, USER_NICKNAME, USER_EMAIL, USER_PHONE, USER_BIRTH
+            USER_ID, USER_PW, USER_NICKNAME, USER_EMAIL, USER_PHONE, USER_BIRTH
         ) VALUES (
-            SEQ_USERS.NEXTVAL, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?
         )
     </entry>
     
@@ -64,7 +64,7 @@
 	<entry key="updateDormantUsers">
     	UPDATE USERS 
     	SET USER_STATUS = 'D'
-    	WHERE MONTHS_BETWEEN(SYSDATE, USER_LAST_LOGIN_AT) >= 12 
+    	WHERE TIMESTAMPDIFF(MONTH, USER_LAST_LOGIN_AT, NOW()) >= 12 
       	AND USER_STATUS = 'A'
 	</entry>		
 	
@@ -72,7 +72,7 @@
 	<entry key="wakeupUser">
     	UPDATE USERS 
     	SET USER_STATUS = 'A', 
-        	USER_LAST_LOGIN_AT = SYSDATE 
+        	USER_LAST_LOGIN_AT = NOW() 
     	WHERE USER_ID = ?
 	</entry>
 	
@@ -92,7 +92,7 @@
 	    FROM USERS 
 	    WHERE BOOK_OPEN_YN = 'Y' 
 	      AND USER_STATUS = 'A' 
-	      AND USER_ID LIKE '%' || ? || '%'
+	      AND USER_ID LIKE CONCAT('%', ?, '%')
 	    ]]>
 	</entry>
 

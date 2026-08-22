@@ -7,7 +7,7 @@
 	    <![CDATA[
 	    SELECT 
 	        C.CATEGORY_NAME,
-	        NVL(SUM(T.TRANS_AMOUNT), 0) AS TOTAL_AMOUNT
+	        IFNULL(SUM(T.TRANS_AMOUNT), 0) AS TOTAL_AMOUNT
 	    FROM GROUP_TRANSACTIONS T
 	    JOIN GROUP_CATEGORIES C ON T.GCATEGORY_NUM = C.GCATEGORY_NUM
 	    WHERE T.GROUP_NUM IN (
@@ -15,7 +15,7 @@
 	        FROM GROUP_MEMBERS 
 	        WHERE USER_NUM = ? AND MEMBER_STATUS = 'A'
 	    )
-	      AND TO_CHAR(T.TRANS_DATE, 'YYYY-MM') = ? 
+	      AND DATE_FORMAT(T.TRANS_DATE, '%Y-%m') = ? 
 	      AND T.USE_YN = 'Y'
 	    GROUP BY C.CATEGORY_NAME
 	    ORDER BY TOTAL_AMOUNT DESC
@@ -26,18 +26,18 @@
 	<entry key="getAllMyGroupTrendForChart">
 	    <![CDATA[
 	    SELECT 
-	        TO_CHAR(T.TRANS_DATE, 'YYYY-MM') AS TARGET_MONTH,
-	        NVL(SUM(T.TRANS_AMOUNT), 0) AS TOTAL_AMOUNT
+	        DATE_FORMAT(T.TRANS_DATE, '%Y-%m') AS TARGET_MONTH,
+	        IFNULL(SUM(T.TRANS_AMOUNT), 0) AS TOTAL_AMOUNT
 	    FROM GROUP_TRANSACTIONS T
 	    WHERE T.GROUP_NUM IN (
 	        SELECT GROUP_NUM 
 	        FROM GROUP_MEMBERS 
 	        WHERE USER_NUM = ? AND MEMBER_STATUS = 'A'
 	    )
-	      AND T.TRANS_DATE >= ADD_MONTHS(TO_DATE(?, 'YYYY-MM'), -5)
-	      AND T.TRANS_DATE < ADD_MONTHS(TO_DATE(?, 'YYYY-MM'), 1)
+	      AND T.TRANS_DATE >= DATE_SUB(STR_TO_DATE(CONCAT(?, '-01'), '%Y-%m-%d'), INTERVAL 5 MONTH)
+	      AND T.TRANS_DATE < DATE_ADD(STR_TO_DATE(CONCAT(?, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH)
 	      AND T.USE_YN = 'Y'
-	    GROUP BY TO_CHAR(T.TRANS_DATE, 'YYYY-MM')
+	    GROUP BY DATE_FORMAT(T.TRANS_DATE, '%Y-%m')
 	    ORDER BY TARGET_MONTH
 	    ]]>
 	</entry>
@@ -46,19 +46,18 @@
 	<entry key="insertGroupTransaction">
 	    <![CDATA[
 	    INSERT INTO GROUP_TRANSACTIONS (
-	        GTRANS_NUM, GROUP_NUM, PERIOD_NUM, GCATEGORY_NUM, USER_NUM, 
+	        GROUP_NUM, PERIOD_NUM, GCATEGORY_NUM, USER_NUM, 
 	        TRANS_AMOUNT, TRANS_DATE, TRANS_MEMO, USE_YN, CREATED_AT
 	    ) VALUES (
-	        SEQ_GROUP_TRANSACTIONS.NEXTVAL, 
 	        ?, 
 	        (SELECT MAX(PERIOD_NUM) FROM LEDGER_PERIODS WHERE GROUP_NUM = ? AND PERIOD_STATUS = 'O'), 
 	        ?, 
 	        ?, 
 	        ?, 
-	        TO_DATE(?, 'YYYY-MM-DD'), 
+	        STR_TO_DATE(?, '%Y-%m-%d'), 
 	        ?, 
 	        'Y', 
-	        SYSDATE
+	        NOW()
 	    )
 	    ]]>
 	</entry>
@@ -73,7 +72,7 @@
 	<!-- 지출 내역 수정 -->
 	<entry key="updateGroupTransaction">
 	    UPDATE GROUP_TRANSACTIONS 
-	    SET GCATEGORY_NUM = ?, TRANS_AMOUNT = ?, TRANS_DATE = TO_DATE(?, 'YYYY-MM-DD'), TRANS_MEMO = ? 
+	    SET GCATEGORY_NUM = ?, TRANS_AMOUNT = ?, TRANS_DATE = STR_TO_DATE(?, '%Y-%m-%d'), TRANS_MEMO = ? 
 	    WHERE GTRANS_NUM = ?
 	</entry>
 	
@@ -82,49 +81,11 @@
 	    UPDATE GROUP_TRANSACTIONS SET USE_YN = 'N' WHERE GTRANS_NUM = ?
 	</entry>
 	
-	<!-- 히스토리 로그 기록 -->
-	<entry key="insertExpenseLog">
-	    INSERT INTO EXPENSE_LOGS (
-	        LOG_NUM, GTRANS_NUM, ACTION_USER_NUM, ACTION_TYPE, 
-	        BEFORE_AMOUNT, AFTER_AMOUNT, BEFORE_CATEGORY, AFTER_CATEGORY, CREATED_AT
-	    ) VALUES (SEQ_EXPENSE_LOGS.NEXTVAL, ?, ?, ?, ?, ?, ?, ?, SYSDATE)
-	</entry>
-	
-	<!-- 그룹 내 전체 지출 변경 이력 조회 (최신순) -->
-	<entry key="getExpenseLogs">
-	    <![CDATA[
-	    SELECT L.LOG_NUM, L.GTRANS_NUM, L.ACTION_USER_NUM, L.ACTION_TYPE, 
-	           L.BEFORE_AMOUNT, L.AFTER_AMOUNT, L.BEFORE_CATEGORY, L.AFTER_CATEGORY, 
-	           TO_CHAR(L.CREATED_AT, 'YYYY-MM-DD HH24:MI') AS CREATED_AT_STR,
-	           U.USER_NICKNAME, 
-	           T.TRANS_MEMO
-	    FROM EXPENSE_LOGS L
-	    JOIN GROUP_TRANSACTIONS T ON L.GTRANS_NUM = T.GTRANS_NUM
-	    JOIN USERS U ON L.ACTION_USER_NUM = U.USER_NUM
-	    WHERE T.GROUP_NUM = ?
-	    ORDER BY L.CREATED_AT DESC
-	    ]]>
-	</entry>
-	
-	<!-- 카테고리 삭제 시 벌크 인서트 (해당 카테고리 내역을 전부 미분류로 로그 남김) -->
-	<entry key="insertBulkLogForCategoryDelete">
-	    <![CDATA[
-	    INSERT INTO EXPENSE_LOGS (
-	        LOG_NUM, GTRANS_NUM, ACTION_USER_NUM, ACTION_TYPE, 
-	        BEFORE_AMOUNT, AFTER_AMOUNT, BEFORE_CATEGORY, AFTER_CATEGORY, CREATED_AT
-	    )
-	    SELECT SEQ_EXPENSE_LOGS.NEXTVAL, GTRANS_NUM, ?, 'U', 
-	           TRANS_AMOUNT, TRANS_AMOUNT, ?, '미분류', SYSDATE
-	    FROM GROUP_TRANSACTIONS
-	    WHERE GCATEGORY_NUM = ? AND USE_YN = 'Y'
-	    ]]>
-	</entry>
-
 	<entry key="getMemberExpensesByPeriod">
 	    SELECT 
 	        M.USER_NUM, 
 	        U.USER_NICKNAME,
-	        NVL(SUM(T.TRANS_AMOUNT), 0) AS TOTAL_SPENT
+	        IFNULL(SUM(T.TRANS_AMOUNT), 0) AS TOTAL_SPENT
 	    FROM GROUP_MEMBERS M
 	    JOIN USERS U ON M.USER_NUM = U.USER_NUM
 	    LEFT JOIN GROUP_TRANSACTIONS T 
@@ -139,7 +100,7 @@
 	<entry key="getTransactionsByPeriod">
 	    SELECT 
 	        T.GTRANS_NUM,
-	        TO_CHAR(T.TRANS_DATE, 'YYYY-MM-DD') AS TRANS_DATE,
+	        DATE_FORMAT(T.TRANS_DATE, '%Y-%m-%d') AS TRANS_DATE,
 	        T.TRANS_AMOUNT,
 	        T.TRANS_MEMO,
 	        C.CATEGORY_NAME,

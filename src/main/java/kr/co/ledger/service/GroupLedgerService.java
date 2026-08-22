@@ -10,6 +10,7 @@ import kr.co.ledger.dto.GroupTransactionDTO;
 import kr.co.ledger.dto.LedgerPeriodDTO;
 import kr.co.ledger.dto.SettlementSnapshotDTO;
 import kr.co.ledger.dto.TrendDTO;
+import kr.co.ledger.dao.ExpenseLogDAO;
 import kr.co.ledger.dao.GroupCategoryDAO;
 import kr.co.ledger.dao.GroupDAO;
 import kr.co.ledger.dao.GroupTransactionDAO;
@@ -105,7 +106,7 @@ public class GroupLedgerService {
 	        }
 	        
 	        // 벌크 인서트는 (카테고리 삭제/이관이 실행되기 '직전'에 호출)
-	        GroupTransactionDAO.getInstance().insertBulkLogForCategoryDelete(categoryNum, categoryName, actionUserNum);
+	        ExpenseLogDAO.getInstance().insertBulkLogForCategoryDelete(categoryNum, categoryName, actionUserNum);
 	        
 	        // 그 후 기존처럼 카테고리 삭제(이관) 진행
 	        return GroupCategoryDAO.getInstance().deleteCategoryWithTransfer(groupNum, categoryNum, categoryName, actionUserNum);
@@ -152,7 +153,7 @@ public class GroupLedgerService {
 	 
 	 	// 이력 조회 메서드
 	    public List<ExpenseLogDTO> getExpenseLogs(int groupNum) throws Exception {
-	        return GroupTransactionDAO.getInstance().getExpenseLogs(groupNum);
+	        return ExpenseLogDAO.getInstance().getExpenseLogs(groupNum);
 	    }
 	    
 	    // ==========================================================

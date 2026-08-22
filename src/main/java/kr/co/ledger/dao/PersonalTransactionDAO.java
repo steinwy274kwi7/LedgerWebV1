@@ -97,7 +97,8 @@ public class PersonalTransactionDAO {
         params.add(userNum);
         
         if (targetMonth != null && !targetMonth.isEmpty()) {
-            sql.append(" AND TO_CHAR(TRANS_DATE, 'YYYY-MM') = ?");
+            // 수정: TO_CHAR -> DATE_FORMAT
+            sql.append(" AND DATE_FORMAT(TRANS_DATE, '%Y-%m') = ?");
             params.add(targetMonth);
         }
         if (type != null && !type.equals("ALL")) {
@@ -109,7 +110,8 @@ public class PersonalTransactionDAO {
             params.add("%" + keyword + "%");
         }
         
-        sql.append(" GROUP BY TO_CHAR(TRANS_DATE, 'YYYY-MM-DD') ORDER BY TRANS_DATE");
+        // 수정: TO_CHAR -> DATE_FORMAT
+        sql.append(" GROUP BY DATE_FORMAT(TRANS_DATE, '%Y-%m-%d') ORDER BY TRANS_DATE");
 
         List<CalendarDTO> list = new ArrayList<>();
         try (Connection conn = DBManager.getConnection();
@@ -140,10 +142,12 @@ public class PersonalTransactionDAO {
         params.add(userNum);
         
         if (date != null && !date.isEmpty()) {
-            sql.append(" AND TO_CHAR(T.TRANS_DATE, 'YYYY-MM-DD') = ?");
+            // 수정: TO_CHAR -> DATE_FORMAT
+            sql.append(" AND DATE_FORMAT(T.TRANS_DATE, '%Y-%m-%d') = ?");
             params.add(date);
         } else if (month != null && !month.isEmpty()) {
-            sql.append(" AND TO_CHAR(T.TRANS_DATE, 'YYYY-MM') = ?");
+            // 수정: TO_CHAR -> DATE_FORMAT
+            sql.append(" AND DATE_FORMAT(T.TRANS_DATE, '%Y-%m') = ?");
             params.add(month);
         }
         

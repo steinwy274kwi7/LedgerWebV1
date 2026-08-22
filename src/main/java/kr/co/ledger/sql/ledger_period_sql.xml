@@ -15,7 +15,7 @@
 <entry key="closeCurrentPeriod">
     <![CDATA[
     UPDATE LEDGER_PERIODS 
-    SET PERIOD_STATUS = 'C', PERIOD_END_DATE = SYSDATE 
+    SET PERIOD_STATUS = 'C', PERIOD_END_DATE = NOW() 
     WHERE PERIOD_NUM = ?
     ]]>
 </entry>
@@ -24,19 +24,14 @@
 <entry key="openNewPeriod">
     <![CDATA[
     INSERT INTO LEDGER_PERIODS (
-        PERIOD_NUM, GROUP_NUM, PERIOD_SEQ, PERIOD_START_DATE, PERIOD_STATUS
+        GROUP_NUM, PERIOD_SEQ, PERIOD_START_DATE, PERIOD_STATUS
     ) VALUES (
-        SEQ_LEDGER_PERIODS.NEXTVAL, ?, ?, SYSDATE, 'O'
+        ?, ?, NOW(), 'O'
     )
     ]]>
 </entry>
 
-<entry key="getOpenPeriodNum">
-    SELECT PERIOD_NUM 
-    FROM LEDGER_PERIODS 
-    WHERE GROUP_NUM = ? AND PERIOD_STATUS = 'O'
-</entry>
-
+<!-- 현재 열려있는 회차 번호 조회 -->
 <entry key="getOpenPeriodNum">
     SELECT PERIOD_NUM 
     FROM LEDGER_PERIODS 

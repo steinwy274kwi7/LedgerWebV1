@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Context>
-    <Resource name="jdbc/oracle"
+    <Resource name="jdbc/mysql"
               auth="Container"
               type="javax.sql.DataSource"
-              driverClassName="oracle.jdbc.OracleDriver"
-              url="jdbc:oracle:thin:@localhost:1521:xe"
+              driverClassName="com.mysql.cj.jdbc.Driver"
+              url="jdbc:mysql://localhost:3306/ledgerwebv1?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=Asia/Seoul"
               username="${DB_USER}"
-              password="${DB_PASS}" />
+              password="${DB_PASS}"
+              maxTotal="20"
+              maxIdle="10"
+              maxWaitMillis="-1"/>
 </Context>

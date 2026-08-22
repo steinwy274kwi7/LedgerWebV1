@@ -4,8 +4,8 @@
 
 <!-- 카테고리 등록 -->
 <entry key="insertCategory">
-    INSERT INTO GROUP_CATEGORIES (GCATEGORY_NUM, GROUP_NUM, CATEGORY_NAME, IS_DEFAULT_YN, USE_YN, CREATED_AT)
-    VALUES (SEQ_GROUP_CATEGORIES.NEXTVAL, ?, ?, 'N', 'Y', SYSDATE)
+    INSERT INTO GROUP_CATEGORIES (GROUP_NUM, CATEGORY_NAME, IS_DEFAULT_YN, USE_YN, CREATED_AT)
+    VALUES (?, ?, 'N', 'Y', NOW())
 </entry>
 
 <!-- 카테고리 수정 -->
@@ -18,19 +18,6 @@
 <entry key="getUncategorizedNum">
     SELECT GCATEGORY_NUM FROM GROUP_CATEGORIES 
     WHERE GROUP_NUM = ? AND CATEGORY_NAME = '미분류'
-</entry>
-
-<!-- 삭제 전: 기존 지출 내역을 EXPENSE_LOGS에 업데이트 로그로 기록 -->
-<entry key="insertTransferLogs">
-    INSERT INTO EXPENSE_LOGS (
-        LOG_NUM, GTRANS_NUM, ACTION_USER_NUM, ACTION_TYPE, 
-        BEFORE_AMOUNT, AFTER_AMOUNT, BEFORE_CATEGORY, AFTER_CATEGORY, CREATED_AT
-    )
-    SELECT 
-        SEQ_EXPENSE_LOGS.NEXTVAL, GTRANS_NUM, ?, 'U', 
-        TRANS_AMOUNT, TRANS_AMOUNT, ?, '미분류', SYSDATE
-    FROM GROUP_TRANSACTIONS 
-    WHERE GCATEGORY_NUM = ?
 </entry>
 
 <!-- 삭제 중: 기존 지출 내역의 카테고리를 '미분류'로 업데이트 -->
@@ -58,8 +45,8 @@
 <!-- 미분류 카테고리 자동생성 -->
 <entry key="insertDefaultGroupCategory">
     <![CDATA[
-    INSERT INTO GROUP_CATEGORIES (GCATEGORY_NUM, GROUP_NUM, CATEGORY_NAME, IS_DEFAULT_YN, USE_YN, CREATED_AT)
-    VALUES (SEQ_GROUP_CATEGORIES.NEXTVAL, ?, '미분류', 'Y', 'Y', SYSDATE)
+    INSERT INTO GROUP_CATEGORIES (GROUP_NUM, CATEGORY_NAME, IS_DEFAULT_YN, USE_YN, CREATED_AT)
+    VALUES (?, '미분류', 'Y', 'Y', NOW())
     ]]>
 </entry>
 
